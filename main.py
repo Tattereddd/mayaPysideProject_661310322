@@ -45,12 +45,12 @@ class JoinCurvesLibaryDialog(QtWidgets.QDialog):
 		super().__init__(parent)
 
 		self.setWindowTitle('Join&Curves Libary')
-		self.resize(400,800)
+		self.resize(400,500)
 
 		self.mainLayout = QtWidgets.QVBoxLayout()
 		self.setLayout(self.mainLayout)
 
-
+##############################   JOINT    #########################################
 		self.joint_frameLayout = FramLayout("Joint Create")
 		
 		self.joint_listWidget = QtWidgets.QListWidget()
@@ -61,9 +61,29 @@ class JoinCurvesLibaryDialog(QtWidgets.QDialog):
 		self.joint_listWidget.setResizeMode(QtWidgets.QListView.Adjust)
 		self.joint_frameLayout.addWidget(self.joint_listWidget)
 
-		self.add
+		self.buttonJJAddDel_Layout=QtWidgets.QHBoxLayout()
+		self.joint_frameLayout.frameLayout.addLayout(self.buttonJJAddDel_Layout)
+		self.buttonJJAdd = QtWidgets.QPushButton('ADD')
+		self.buttonJJDel = QtWidgets.QPushButton('DEL')
+		self.buttonJJAddDel_Layout.addWidget(self.buttonJJAdd)
+		self.buttonJJAddDel_Layout.addWidget(self.buttonJJDel)
+
+		self.CheckboxGroup_Layout = QtWidgets.QHBoxLayout()
+		self.Label_CreateCurves = QtWidgets.QLabel('Create Curves With Joint')
+		self.Checkbox_CreateCurves = QtWidgets.QCheckBox()
+		self.CheckboxGroup_Layout.addWidget(self.Label_CreateCurves)
+		self.CheckboxGroup_Layout.addWidget(self.Checkbox_CreateCurves)
+		self.CheckboxGroup_Layout.addStretch()
+
+
+
+		
+		self.joint_frameLayout.frameLayout.addLayout(self.CheckboxGroup_Layout)
+
+##############################   CURVE    #########################################
 
 		self.curves_frameLayout = FramLayout("Curves Create")
+
 		self.curves_listWidget = QtWidgets.QListWidget()
 		self.curves_listWidget.setIconSize(QtCore.QSize(60,60))
 		self.curves_listWidget.setSpacing(5)
@@ -71,6 +91,15 @@ class JoinCurvesLibaryDialog(QtWidgets.QDialog):
 		self.curves_listWidget.setMovement(QtWidgets.QListView.Static)
 		self.curves_listWidget.setResizeMode(QtWidgets.QListView.Adjust)
 		self.curves_frameLayout.addWidget(self.curves_listWidget)
+
+		self.buttonCCAddDel_Layout=QtWidgets.QHBoxLayout()
+		self.curves_frameLayout.frameLayout.addLayout(self.buttonCCAddDel_Layout)
+		self.buttonCCAdd = QtWidgets.QPushButton('ADD')
+		self.buttonCCDel = QtWidgets.QPushButton('DEL')
+		self.buttonCCAddDel_Layout.addWidget(self.buttonCCAdd)
+		self.buttonCCAddDel_Layout.addWidget(self.buttonCCDel)
+
+##############################   ADDALL    #########################################
 
 		self.mainLayout.addWidget(self.joint_frameLayout)
 		self.mainLayout.addWidget(self.curves_frameLayout)
