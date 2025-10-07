@@ -53,6 +53,7 @@ class JoinCurvesLibaryDialog(QtWidgets.QDialog):
 ##############################   JOINT    #########################################
 		self.joint_frameLayout = FramLayout("Joint Create")
 		
+		#ที่เก็บของ
 		self.joint_listWidget = QtWidgets.QListWidget()
 		self.joint_listWidget.setIconSize(QtCore.QSize(60,60))
 		self.joint_listWidget.setSpacing(5)
@@ -61,24 +62,60 @@ class JoinCurvesLibaryDialog(QtWidgets.QDialog):
 		self.joint_listWidget.setResizeMode(QtWidgets.QListView.Adjust)
 		self.joint_frameLayout.addWidget(self.joint_listWidget)
 
-		self.buttonJJAddDel_Layout=QtWidgets.QHBoxLayout()
-		self.joint_frameLayout.frameLayout.addLayout(self.buttonJJAddDel_Layout)
-		self.buttonJJAdd = QtWidgets.QPushButton('ADD')
-		self.buttonJJDel = QtWidgets.QPushButton('DEL')
-		self.buttonJJAddDel_Layout.addWidget(self.buttonJJAdd)
-		self.buttonJJAddDel_Layout.addWidget(self.buttonJJDel)
+		#ปุ่มaddกับdel
+		self.buttonAddDel_LayoutJJ=QtWidgets.QHBoxLayout()
+		self.joint_frameLayout.frameLayout.addLayout(self.buttonAddDel_LayoutJJ)
+		self.buttonAddJJ = QtWidgets.QPushButton('ADD')
+		self.buttonDelJJ = QtWidgets.QPushButton('DEL')
+		self.buttonAddDel_LayoutJJ.addWidget(self.buttonAddJJ)
+		self.buttonAddDel_LayoutJJ.addWidget(self.buttonDelJJ)
 
-		self.CheckboxGroup_Layout = QtWidgets.QHBoxLayout()
-		self.Label_CreateCurves = QtWidgets.QLabel('Create Curves With Joint')
-		self.Checkbox_CreateCurves = QtWidgets.QCheckBox()
-		self.CheckboxGroup_Layout.addWidget(self.Label_CreateCurves)
-		self.CheckboxGroup_Layout.addWidget(self.Checkbox_CreateCurves)
-		self.CheckboxGroup_Layout.addStretch()
+		#checkbox Create Curves With Joint ใหญ่สุด
+		self.CheckboxGroup_LayoutJJ = QtWidgets.QHBoxLayout()
+		self.Label_CreateCurvesJJ = QtWidgets.QLabel('Create Curves With Joint') #แยกชื่อ
+		self.Checkbox_CreateCurvesJJ = QtWidgets.QCheckBox() #แยกcheckbox
+		self.CheckboxGroup_LayoutJJ.addWidget(self.Label_CreateCurvesJJ) #จับมารวมกันถ้าไม่แยกcheckboxมันจะไปอยู่หลังข้อความ
+		self.CheckboxGroup_LayoutJJ.addWidget(self.Checkbox_CreateCurvesJJ)#จับมารวมกันถ้าไม่แยกcheckboxมันจะไปอยู่หลังข้อความ
+		self.CheckboxGroup_LayoutJJ.addStretch()
+		self.joint_frameLayout.frameLayout.addLayout(self.CheckboxGroup_LayoutJJ)
+
+		self.childJJ = QtWidgets.QWidget()
+		self.childJJ_frameLayout = QtWidgets.QVBoxLayout(self.childJJ)
+		self.childJJ_frameLayout.setContentsMargins(25,0,0,0)
+		self.childJJ_frameLayout.setSpacing(4)
 
 
+		self.Checkbox_CreateGroupJJ = QtWidgets.QCheckBox('Group Curves')
+		self.childJJ_frameLayout.addWidget(self.Checkbox_CreateGroupJJ)
+
+		self.rotate_LayoutJJ = QtWidgets.QHBoxLayout()
+		self.rotate_LayoutJJ.addWidget(QtWidgets.QLabel('Rotate'))
+		self.rotate_LayoutJJX = QtWidgets.QDoubleSpinBox(); self.rotate_LayoutJJX.setRange(0,360)
+		self.rotate_LayoutJJY = QtWidgets.QDoubleSpinBox(); self.rotate_LayoutJJY.setRange(0,360)
+		self.rotate_LayoutJJZ = QtWidgets.QDoubleSpinBox(); self.rotate_LayoutJJZ.setRange(0,360)
+		for i in [self.rotate_LayoutJJX, self.rotate_LayoutJJY, self.rotate_LayoutJJZ]: i.setEnabled(False)
+		self.rotate_LayoutJJ.addWidget(self.rotate_LayoutJJX)
+		self.rotate_LayoutJJ.addWidget(self.rotate_LayoutJJY)
+		self.rotate_LayoutJJ.addWidget(self.rotate_LayoutJJZ)
+		self.childJJ_frameLayout.addLayout(self.rotate_LayoutJJ)
+
+		self.scale_LayoutJJ = QtWidgets.QHBoxLayout()
+		self.scale_LayoutJJ.addWidget(QtWidgets.QLabel('Scale'))
+		self.scale_LayoutJJX = QtWidgets.QDoubleSpinBox(); self.scale_LayoutJJX.setRange(0,999)
+		self.scale_LayoutJJY = QtWidgets.QDoubleSpinBox(); self.scale_LayoutJJY.setRange(0,999)
+		self.scale_LayoutJJZ = QtWidgets.QDoubleSpinBox(); self.scale_LayoutJJZ.setRange(0,999)
+		for i in [self.scale_LayoutJJX, self.scale_LayoutJJY, self.scale_LayoutJJZ]: i.setEnabled(False)
+		self.scale_LayoutJJ.addWidget(self.scale_LayoutJJX)
+		self.scale_LayoutJJ.addWidget(self.scale_LayoutJJY)
+		self.scale_LayoutJJ.addWidget(self.scale_LayoutJJZ)
+		self.childJJ_frameLayout.addLayout(self.scale_LayoutJJ)
 
 		
-		self.joint_frameLayout.frameLayout.addLayout(self.CheckboxGroup_Layout)
+		self.joint_frameLayout.frameLayout.addWidget(self.childJJ)
+		self.childJJ.setEnabled(False)
+		self.Checkbox_CreateGroupJJ.toggled.connect(self.rotate_LayoutJJ.setEnabled)
+		self.Checkbox_CreateGroupJJ.toggled.connect(self.scale_LayoutJJ.setEnabled)
+
 
 ##############################   CURVE    #########################################
 
@@ -104,8 +141,10 @@ class JoinCurvesLibaryDialog(QtWidgets.QDialog):
 		self.mainLayout.addWidget(self.joint_frameLayout)
 		self.mainLayout.addWidget(self.curves_frameLayout)
 		self.mainLayout.addStretch()
-
-
+def toggle_curve_controls(self, state):
+		enabled = state == QtCore.Qt.Checked
+		for w in [self.rotate_LayoutJJX, self.rotate_LayoutJJY, self.rotate_LayoutJJZ,]:
+			w.setEnabled(enabled)
 def run():
 	global ui
 	try:
