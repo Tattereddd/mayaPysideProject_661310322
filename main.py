@@ -7,6 +7,8 @@ except:
 
 import maya.OpenMayaUI as omui
 
+#########################################   FRAME   ###################################################
+
 class FramLayout(QtWidgets.QWidget):
 	def __init__(self, title="", parent=None):
 		super().__init__(parent)
@@ -39,9 +41,13 @@ class FramLayout(QtWidgets.QWidget):
 	def addWidget(self, widget):
 		self.frameLayout.addWidget(widget)
 
+
+#########################################   COLOR   ###################################################
+
 class ColorSliderWidget(QtWidgets.QWidget):
 	colorChanged = QtCore.Signal(float)  # ส่งค่า float 0.0-1.0 ออกมา
 
+	####################ตั้งค่าเริ่มต้นสี
 	def __init__(self, parent=None):
 		super().__init__(parent)
 
@@ -49,39 +55,46 @@ class ColorSliderWidget(QtWidgets.QWidget):
 		self.color_layout.setContentsMargins(0, 0, 0, 0)
 		self.color_layout.setSpacing(8)
 
-		# Label แสดงสี
+		self.base_color = QtGui.QColor(128, 128, 128)
+
+		#################### Label แสดงสี
 		self.color_show = QtWidgets.QPushButton()
 		self.color_show.setFixedSize(50, 18)
 		self.color_show.setStyleSheet("background-color: rgb(128,128,128); border: 1px solid #555;")
 		self.color_show.clicked.connect(self.pickColor)
 
-		# Slider ควบคุมค่า 0–255
+		#################### Slider ควบคุมค่า 0–255
 		self.color_slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
 		self.color_slider.setRange(0, 255)
 		self.color_slider.setValue(128)
 		self.color_slider.valueChanged.connect(self.updateColor)
 
+		#################### เอาเข้าแม่
 		self.color_layout.addWidget(QtWidgets.QLabel("Color"))
 		self.color_layout.addWidget(self.color_show)
 		self.color_layout.addWidget(self.color_slider)
-		self.updateColor(self.color_slider.value())
 
+	#################### updateสี
 	def updateColor(self, value):
-		# ปรับสีใน preview label
-		self.color_show.setStyleSheet(f"background-color: rgb({value},{value},{value}); border: 1px solid #555;")
-		self.colorChanged.emit(value / 255.0)  # ส่งค่า normalized ออกไปถ้าต้องใช้ต่อ
+		self.up_color = value/255.0
+		r = int(self.base_color.red() * self.up_color)
+		g = int(self.base_color.green() * self.up_color)
+		b = int(self.base_color.blue() * self.up_color)
 
+		# ปรับสีใน preview label
+		self.color_show.setStyleSheet(f"background-color: rgb({r},{g},{b}); border: 1px solid #555;")
+		self.colorChanged.emit(self.up_color)  # ส่งค่า normalized ออกไปถ้าต้องใช้ต่อ
+
+	#################### แสดงสีที่เลือก
 	def pickColor(self):
-		self.color_pick = QtWidgets.QColorDialog.getColor()
-		if self.color_pick.isValid():
-			r, g, b, _ = color.getRgb()
-			self.color_slider.setValue(ini((r + g + b)/3))
-			self.color_show.setStyleSheet(f"background-color: rgb({r},{g},{b}); border: 1px solid #555;")
+		self.selected_color = QtWidgets.QColorDialog.getColor(self.base_color, self, "Select Color")
+		if self.selected_color.isValid():
+			self.base_color = self.selected_color
+			self.updateColor(self.color_slider.value())
+				
 
 
 #########################################   MAIN   ###################################################
-
-
 class JoinCurvesLibaryDialog(QtWidgets.QDialog):
 	def __init__(self,parent=None):
 		super().__init__(parent)
@@ -92,10 +105,10 @@ class JoinCurvesLibaryDialog(QtWidgets.QDialog):
 		self.mainLayout = QtWidgets.QVBoxLayout()
 		self.setLayout(self.mainLayout)
 
-################################################################   JOINT
+		################################################################   JOINT
 		self.joint_frameLayout = FramLayout("Joint Create")
 
-		#ที่เก็บของ
+		####################ที่เก็บของ
 		self.joint_listWidget = QtWidgets.QListWidget()
 		self.joint_listWidget.setIconSize(QtCore.QSize(60,60))
 		self.joint_listWidget.setSpacing(5)
@@ -104,7 +117,7 @@ class JoinCurvesLibaryDialog(QtWidgets.QDialog):
 		self.joint_listWidget.setResizeMode(QtWidgets.QListView.Adjust)
 		self.joint_frameLayout.addWidget(self.joint_listWidget)
 
-		#ปุ่มaddกับdel
+		####################ปุ่มaddกับdel
 		self.buttonAddDel_LayoutJJ = QtWidgets.QHBoxLayout()
 		self.buttonAddDel_LayoutJJ.addStretch()
 		self.buttonAddJJ = QtWidgets.QPushButton('ADD')
@@ -113,7 +126,7 @@ class JoinCurvesLibaryDialog(QtWidgets.QDialog):
 		self.buttonAddDel_LayoutJJ.addWidget(self.buttonDelJJ)
 		self.joint_frameLayout.frameLayout.addLayout(self.buttonAddDel_LayoutJJ)
 
-		#checkbox Create Curves With Joint ใหญ่สุด
+		####################Check boxใหญ่สุด
 		self.CheckboxGroup_LayoutJJ = QtWidgets.QHBoxLayout()
 		self.Label_CreateCurvesJJ = QtWidgets.QLabel('Create Curves With Joint') #แยกชื่อ
 		self.Checkbox_CreateCurvesJJ = QtWidgets.QCheckBox() #แยกcheckbox
@@ -122,11 +135,11 @@ class JoinCurvesLibaryDialog(QtWidgets.QDialog):
 		self.CheckboxGroup_LayoutJJ.addStretch()
 		self.joint_frameLayout.frameLayout.addLayout(self.CheckboxGroup_LayoutJJ)
 
+		####################ใส่ลูกเข้าด้านใน + จัดlayout
 		self.childJJ = QtWidgets.QWidget()
 		self.childJJ_frameLayout = QtWidgets.QVBoxLayout(self.childJJ)
 		self.childJJ_frameLayout.setContentsMargins(25,0,0,0)
 		self.childJJ_frameLayout.setSpacing(4)
-
 
 		self.Checkbox_CreateGroupJJ = QtWidgets.QCheckBox('Group Curves')
 		self.childJJ_frameLayout.addWidget(self.Checkbox_CreateGroupJJ)
@@ -157,13 +170,13 @@ class JoinCurvesLibaryDialog(QtWidgets.QDialog):
 		self.color_LayoutJJ.addWidget(self.colorSliderJJ)
 		self.childJJ_frameLayout.addLayout(self.color_LayoutJJ)
 
-		####################เอาลูกมาใส่แม่รอง
+		####################เอาลูกมาใส่แม่ใหญ่
 		self.joint_frameLayout.frameLayout.addWidget(self.childJJ)
 		self.childJJ.setEnabled(False)
 
 		####################เชื่อมเปิดปิด
 		self.Checkbox_CreateCurvesJJ.stateChanged.connect(self.toggle_createCurves)
-
+		####################ปุ่ม
 		self.button_LayoutJJ = QtWidgets.QHBoxLayout()
 		self.joint_frameLayout.frameLayout.addLayout(self.button_LayoutJJ)
 		self.createButtonJJ = QtWidgets.QPushButton('Create')
@@ -171,9 +184,10 @@ class JoinCurvesLibaryDialog(QtWidgets.QDialog):
 
 
 ################################################################   CURVES  
-
+		#แม่ใหญ่คนที่ 2 
 		self.curves_frameLayout = FramLayout("Curves Create")
 
+		####################ที่เก็บของ
 		self.curves_listWidget = QtWidgets.QListWidget()
 		self.curves_listWidget.setIconSize(QtCore.QSize(60,60))
 		self.curves_listWidget.setSpacing(5)
@@ -182,6 +196,7 @@ class JoinCurvesLibaryDialog(QtWidgets.QDialog):
 		self.curves_listWidget.setResizeMode(QtWidgets.QListView.Adjust)
 		self.curves_frameLayout.addWidget(self.curves_listWidget)
 
+		####################ปุ่มadd del
 		self.buttonAddDel_LayoutCC=QtWidgets.QHBoxLayout()
 		self.buttonAddDel_LayoutCC.addStretch()
 		self.curves_frameLayout.frameLayout.addLayout(self.buttonAddDel_LayoutCC)
@@ -190,7 +205,7 @@ class JoinCurvesLibaryDialog(QtWidgets.QDialog):
 		self.buttonAddDel_LayoutCC.addWidget(self.buttonAddCC)
 		self.buttonAddDel_LayoutCC.addWidget(self.buttonDelCC)
 
-
+		####################กล่องตั้งชื่อ
 		self.namesuffix_layout = QtWidgets.QHBoxLayout()
 		self.name_label = QtWidgets.QLabel('NAME :')
 		self.name_lineEdit = QtWidgets.QLineEdit()
@@ -204,6 +219,7 @@ class JoinCurvesLibaryDialog(QtWidgets.QDialog):
 		#
 		self.curves_frameLayout.frameLayout.addLayout(self.namesuffix_layout)
 
+		####################Checkbox ใหญ่สุด
 		self.CheckboxGroup_LayoutCC = QtWidgets.QHBoxLayout()
 		self.Label_CreateCurvesCC = QtWidgets.QLabel('Group Curves') #แยกชื่อ
 		self.Checkbox_CreateCurvesCC = QtWidgets.QCheckBox() #แยกcheckbox
@@ -212,19 +228,33 @@ class JoinCurvesLibaryDialog(QtWidgets.QDialog):
 		self.CheckboxGroup_LayoutCC.addStretch()
 		self.curves_frameLayout.frameLayout.addLayout(self.CheckboxGroup_LayoutCC)
 
+		####################สร้างที่เก็บลูก + จัดLayout
 		self.childCC = QtWidgets.QWidget()
-		self.childCC_frameLayout = QtWidgets.QVBoxLayout(self.childJJ)
+		self.childCC_frameLayout = QtWidgets.QVBoxLayout(self.childCC)
 		self.childCC_frameLayout.setContentsMargins(25,0,0,0)
 		self.childCC_frameLayout.setSpacing(4)
 
+		####################ที่เก็บของลูก ช่องพิมชื่อgroup
 		self.suffixNameGroup_layout = QtWidgets.QHBoxLayout()
 		self.suffixNameGroup_layout_label = QtWidgets.QLabel('Suffix Name Group:')
-		self.suffixNameGroup_layout_lineEdit = QtWidgets.QLineEdit()
+		self.suffixNameGroup_layout_lineEdit = QtWidgets.QLineEdit()		
+		self.suffixNameGroup_layout_lineEdit.setStyleSheet(
+			'''
+				QLineEdit{
+					LibeEdit-size: 2ใส่ไงนะ;
+				}
+			'''
+			)
+
+
 		self.suffixNameGroup_layout.addWidget(self.suffixNameGroup_layout_label)
 		self.suffixNameGroup_layout.addWidget(self.suffixNameGroup_layout_lineEdit)
 		self.childCC_frameLayout.addLayout(self.suffixNameGroup_layout)
-
-		self.curves_frameLayout.frameLayout.addLayout(self.childCC_frameLayout)
+		
+		####################ที่เก็บของเอาลูกใส่แม่ใหญ่
+		self.childCC.setLayout(self.childCC_frameLayout) 
+		self.curves_frameLayout.frameLayout.addWidget(self.childCC)
+		self.childCC.setEnabled(False)
 
 		self.rotate_LayoutCC = QtWidgets.QHBoxLayout()
 		self.rotate_LayoutCC.addWidget(QtWidgets.QLabel('Rotate'))
@@ -252,22 +282,35 @@ class JoinCurvesLibaryDialog(QtWidgets.QDialog):
 		self.color_LayoutCC.addWidget(self.colorSliderCC)
 		self.curves_frameLayout.frameLayout.addLayout(self.color_LayoutCC)
 
+		####################เชื่อมcheck checkbox
+		self.Checkbox_CreateCurvesCC.stateChanged.connect(self.toggle_GroupCurves)
 
-##############################   ADDALL    #########################################
+		####################ปุ่ม
+		self.button_LayoutCC = QtWidgets.QHBoxLayout()
+		self.curves_frameLayout.frameLayout.addLayout(self.button_LayoutCC)
+		self.createButtonCC = QtWidgets.QPushButton('Create')
+		self.button_LayoutCC.addWidget(self.createButtonCC)
+
+		##############################   เอา2แม่ใหญ่ใส่พ่อ    
 
 		self.mainLayout.addWidget(self.joint_frameLayout)
 		self.mainLayout.addWidget(self.curves_frameLayout)
 		self.mainLayout.addStretch()
 
-##############################  เปิดปิดของ    #########################################
+#################################  check checkbox    
 	def toggle_createCurves(self, state):
 		checked = state == QtCore.Qt.Checked
 		self.childJJ.setEnabled(checked)
-		self.buttonAddJJ.setEnabled(checked)
-		self.buttonDelJJ.setEnabled(checked)
 
+	def toggle_GroupCurves(self, state):
+		checked = state == QtCore.Qt.Checked
+		self.childCC.setEnabled(checked)
+
+
+#################################  RUN UI    #########################################
 def run():
 	global ui
+
 	try:
 		ui.close
 	except:
