@@ -93,7 +93,7 @@ class ColorSliderWidget(QtWidgets.QWidget):
 		self.color_show.setStyleSheet(f"background-color: rgb({r},{g},{b}); border: 1px solid #555;")
 		self.colorChanged.emit(self.up_color)  # ส่งค่า normalized ออกไปถ้าต้องใช้ต่อ
 
-	#################### แสดงสีที่เลือก
+	#################### แสดงสีที่เลือกs
 	def pickColor(self):
 		self.selected_color = QtWidgets.QColorDialog.getColor(self.base_color, self, "Select Color")
 		if self.selected_color.isValid():
