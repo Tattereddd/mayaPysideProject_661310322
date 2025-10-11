@@ -6,6 +6,14 @@ except:
 	from shiboken2 import wrapInstance
 
 import maya.OpenMayaUI as omui
+import maya.cmds as cmds
+import os
+
+import importlib
+from.import util_joint as utj
+importlib.reload(utj)
+
+ICON_PATH = os.path.abspath(os.path.join(os.path.dirname('C:/Users/Tran/Documentsmaya/2024/scripts/mayaPysideProject_661310322/)'),'test'))
 
 #########################################   FRAME   ###################################################
 
@@ -100,7 +108,7 @@ class JoinCurvesLibaryDialog(QtWidgets.QDialog):
 		super().__init__(parent)
 
 		self.setWindowTitle('Join&Curves Libary')
-		self.resize(400,500)
+		self.resize(300,500)
 
 		self.mainLayout = QtWidgets.QVBoxLayout()
 		self.setLayout(self.mainLayout)
@@ -125,6 +133,11 @@ class JoinCurvesLibaryDialog(QtWidgets.QDialog):
 		self.buttonAddDel_LayoutJJ.addWidget(self.buttonAddJJ)
 		self.buttonAddDel_LayoutJJ.addWidget(self.buttonDelJJ)
 		self.joint_frameLayout.frameLayout.addLayout(self.buttonAddDel_LayoutJJ)
+
+		self.add_default_joint_item("body", "cone.png")
+		self.add_default_joint_item("arm", "cone.png")
+		self.add_default_joint_item("leg", "cone.png")
+		self.add_default_joint_item("hand", "cone.png")
 
 		####################Check boxใหญ่สุด
 		self.CheckboxGroup_LayoutJJ = QtWidgets.QHBoxLayout()
@@ -175,7 +188,7 @@ class JoinCurvesLibaryDialog(QtWidgets.QDialog):
 		self.childJJ.setEnabled(False)
 
 		####################เชื่อมเปิดปิด
-		self.Checkbox_CreateCurvesJJ.stateChanged.connect(self.toggle_createCurves)
+		self.Checkbox_CreateCurvesJJ.toggled.connect(self.toggle_createCurves)
 		####################ปุ่ม
 		self.button_LayoutJJ = QtWidgets.QHBoxLayout()
 		self.joint_frameLayout.frameLayout.addLayout(self.button_LayoutJJ)
@@ -238,14 +251,6 @@ class JoinCurvesLibaryDialog(QtWidgets.QDialog):
 		self.suffixNameGroup_layout = QtWidgets.QHBoxLayout()
 		self.suffixNameGroup_layout_label = QtWidgets.QLabel('Suffix Name Group:')
 		self.suffixNameGroup_layout_lineEdit = QtWidgets.QLineEdit()		
-		self.suffixNameGroup_layout_lineEdit.setStyleSheet(
-			'''
-				QLineEdit{
-					LibeEdit-size: 2ใส่ไงนะ;
-				}
-			'''
-			)
-
 
 		self.suffixNameGroup_layout.addWidget(self.suffixNameGroup_layout_label)
 		self.suffixNameGroup_layout.addWidget(self.suffixNameGroup_layout_lineEdit)
@@ -283,7 +288,7 @@ class JoinCurvesLibaryDialog(QtWidgets.QDialog):
 		self.curves_frameLayout.frameLayout.addLayout(self.color_LayoutCC)
 
 		####################เชื่อมcheck checkbox
-		self.Checkbox_CreateCurvesCC.stateChanged.connect(self.toggle_GroupCurves)
+		self.Checkbox_CreateCurvesCC.toggled.connect(self.toggle_GroupCurves)
 
 		####################ปุ่ม
 		self.button_LayoutCC = QtWidgets.QHBoxLayout()
@@ -298,16 +303,28 @@ class JoinCurvesLibaryDialog(QtWidgets.QDialog):
 		self.mainLayout.addStretch()
 
 #################################  check checkbox    
-	def toggle_createCurves(self, state):
-		checked = state == QtCore.Qt.Checked
+	def toggle_createCurves(self, checked):
 		self.childJJ.setEnabled(checked)
 
-	def toggle_GroupCurves(self, state):
-		checked = state == QtCore.Qt.Checked
+	def toggle_GroupCurves(self, checked):
 		self.childCC.setEnabled(checked)
+
+	def add_default_joint_item(self, name, icon_name):
+		item = QtWidgets.QListWidgetItem(name)
+		full_icon_path = os.path.join(ICON_PATH, icon_name)	
+		icon = QtGui.QIcon(ICON_PATH if cmds.file(ICON_PATH, q=True, ex=True) else ":/kinJoint.png")
+		item.setIcon(icon)
+		self.joint_listWidget.addItem(item)
+
+	def add_joint_item(self):
+		util_joint.add_Joint_WidgetsItem(self.joint_listWidget)
+
+	def del_joint_item(self):
+		util_joint.del_Joint_WidgetsItem(self.joint_listWidget)
 
 
 #################################  RUN UI    #########################################
+
 def run():
 	global ui
 
