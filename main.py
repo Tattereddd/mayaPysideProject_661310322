@@ -129,7 +129,9 @@ class JoinCurvesLibaryDialog(QtWidgets.QDialog):
 		self.buttonAddDel_LayoutJJ = QtWidgets.QHBoxLayout()
 		self.buttonAddDel_LayoutJJ.addStretch()
 		self.buttonAddJJ = QtWidgets.QPushButton('ADD')
+		self.buttonAddJJ.clicked.connect(self.add_joint_item)
 		self.buttonDelJJ = QtWidgets.QPushButton('DEL')
+		self.buttonAddJJ.clicked.connect(self.del_joint_item)
 		self.buttonAddDel_LayoutJJ.addWidget(self.buttonAddJJ)
 		self.buttonAddDel_LayoutJJ.addWidget(self.buttonDelJJ)
 		self.joint_frameLayout.frameLayout.addLayout(self.buttonAddDel_LayoutJJ)
@@ -317,10 +319,10 @@ class JoinCurvesLibaryDialog(QtWidgets.QDialog):
 		self.joint_listWidget.addItem(item)
 
 	def add_joint_item(self):
-		util_joint.add_Joint_WidgetsItem(self.joint_listWidget)
+		utj.add_Joint_WidgetsItem(self.joint_listWidget)
 
 	def del_joint_item(self):
-		util_joint.del_Joint_WidgetsItem(self.joint_listWidget)
+		utj.del_Joint_WidgetsItem(self.joint_listWidget)
 
 
 #################################  RUN UI    #########################################
