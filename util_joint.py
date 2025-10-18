@@ -1,16 +1,24 @@
-import maya.cmds as cmds
-import json
-import os
 try:
 	from PySide6 import QtGui, QtWidgets, QtCore
 except:
 	from PySide2 import QtGui, QtWidgets, QtCore
 
+import maya.cmds as cmds
+import json
+import os
+import importlib
 
-from mayaPysideProject_661310322.main import get_maya_icon
-# ===================================================================
-# ฟังก์ชันจัดการรายการ (Add/Delete)
-# ===================================================================
+import util_iconreload as get_maya_icon
+importlib.reload(get_maya_icon)
+from util_iconreload import get_maya_icon
+
+### ---------------------------
+### โหลด icon + จัดการ List ของ Joint
+### ---------------------------
+def create_joint_item(name):
+	item = QtWidgets.QListWidgetItem(name)
+	item.setIcon(get_maya_icon("kinJoint.png"))
+	return item
 
 def add_Joint_WidgetsItem(ui_instance):
 	sels = cmds.ls(sl=True, type='joint')
@@ -25,8 +33,7 @@ def add_Joint_WidgetsItem(ui_instance):
 	existing_items = [ui_instance.joint_listWidget.item(i).text() for i in range(ui_instance.joint_listWidget.count())]
 
 	if joint_to_add not in existing_items:
-		item = QtWidgets.QListWidgetItem(joint_to_add)
-		item.setIcon(get_maya_icon("kinJoint.png"))
+		item = create_joint_item(joint_to_add)
 		ui_instance.joint_listWidget.addItem(item)
 		print(f"Added '{joint_to_add}' to the library.")
 	else:
@@ -41,10 +48,10 @@ def del_Joint_WidgetsItem(ui_instance):
 		row = ui_instance.joint_listWidget.row(item)
 		ui_instance.joint_listWidget.takeItem(row)
 
-# ===================================================================
-# ฟังก์ชันบันทึกและโหลด Library (Save/Load)
-# ===================================================================
 
+### ---------------------------
+### บันทึก / โหลด Joint Preset
+### ---------------------------
 def save_Library(ui_instance, library_path):
 	library_data = {}
 	custom_joints = [
@@ -90,24 +97,20 @@ def save_Library(ui_instance, library_path):
 		cmds.warning(f"not save: {e}")
 
 def load_default_library(ui_instance, library_path):
-#"""(เวอร์ชันแก้ไข) โหลด Default Joint Blueprint และเพิ่มชื่อเข้าไปใน UI"""
 	if not os.path.exists(library_path):
-		# ถ้าไม่มีไฟล์ default, ให้เพิ่มชื่อจาก list เข้าไปแทน
 		for preset_name in ui_instance.default_presets:
 			if not ui_instance.joint_listWidget.findItems(preset_name, QtCore.Qt.MatchExactly):
-				item = QtWidgets.QListWidgetItem(preset_name)
-				item.setIcon(get_maya_icon("kinJoint.png"))
+				item = create_joint_item(preset_name)
 				ui_instance.joint_listWidget.addItem(item)
 		return {}
-	# ถ้ามีไฟล์ default.json ให้โหลดข้อมูลจากไฟล์
+
 	try:
 		with open(library_path, 'r') as f:
 			library_data = json.load(f)
 
 		for root_name in library_data.keys():
 			if not ui_instance.joint_listWidget.findItems(root_name, QtCore.Qt.MatchExactly):
-				item = QtWidgets.QListWidgetItem(root_name)
-				item.setIcon(get_maya_icon("kinJoint.png"))
+				item = create_joint_item(root_name)
 				ui_instance.joint_listWidget.addItem(item)
 
 		print(f"Loaded {len(library_data)} default joint blueprints.")
@@ -117,7 +120,6 @@ def load_default_library(ui_instance, library_path):
 		return {}
 
 def load_library(ui_instance, library_path):
-#"""โหลด User Joint Blueprint และเพิ่มชื่อเข้าไปใน UI"""
 	if not os.path.exists(library_path):
 		return {}
 	try:
@@ -125,18 +127,17 @@ def load_library(ui_instance, library_path):
 			library_data = json.load(f)
 		for root_name in library_data.keys():
 			if not ui_instance.joint_listWidget.findItems(root_name, QtCore.Qt.MatchExactly):
-				item = QtWidgets.QListWidgetItem(root_name)
-				item.setIcon(get_maya_icon("kinJoint.png"))
+				item = create_joint_item(root_name)
 				ui_instance.joint_listWidget.addItem(item)
-
 		print(f"Loaded {len(library_data)} user joint blueprints.")
 		return library_data
 	except Exception as e:
 		cmds.warning(f"Could not load library file. Error: {e}")
 		return {}
 
-
-
+### ---------------------------
+### ฟังก์ชันสร้าง Joint + Curve
+### ---------------------------
 def create_from_preset(ui_instance):
 	selected_items = ui_instance.joint_listWidget.selectedItems()
 	if not selected_items:
@@ -147,7 +148,6 @@ def create_from_preset(ui_instance):
 		return cmds.warning(f"Blueprint for '{preset_name}' not found!")
 
 	blueprint = ui_instance.library_data[preset_name]["joints"]
-
 	name_map = {}
 	cmds.select(cl=True)
 
@@ -160,11 +160,9 @@ def create_from_preset(ui_instance):
 	for joint_info in blueprint:
 		blueprint_child_name = joint_info["name"]
 		blueprint_parent_name = joint_info["parent"]
-
 		if blueprint_parent_name:
 			actual_child = name_map.get(blueprint_child_name)
 			actual_parent = name_map.get(blueprint_parent_name)
-
 			if actual_parent and actual_child and cmds.objExists(actual_child) and cmds.objExists(actual_parent):
 				try:
 					cmds.parent(actual_child, actual_parent)
@@ -175,21 +173,63 @@ def create_from_preset(ui_instance):
 	cmds.joint(root_joint_actual_name, edit=True, orientJoint='xyz', secondaryAxisOrient='yup', children=True, zeroScaleOrient=True)
 
 	newly_created_joints = list(name_map.values())
+
 	if ui_instance.Checkbox_CreateCurvesJJ.isChecked() and newly_created_joints:
 		print("Creating curves...")
-		curves_and_offsets = []
-
 		for jnt in newly_created_joints:
-			created_curve = create_curve_on_joint(ui_instance, jnt)
-
-			if ui_instance.Checkbox_CreateGroupJJ.isChecked():
-				offset_grp = cmds.group(empty=True, name=f"{created_curve}_offset")
-				cmds.matchTransform(offset_grp, jnt)
-				cmds.parent(created_curve, offset_grp)
-				curves_and_offsets.append(offset_grp)
-			else:
-				curves_and_offsets.append(created_curve)
+			create_curve_on_joint(ui_instance, jnt)
 
 	cmds.select(root_joint_actual_name)
 	print(f"Successfully created '{preset_name}'.")
 
+
+### ---------------------------
+### สร้าง Curve สำหรับ Joint
+### ---------------------------
+def create_curve_on_joint(ui_instance, joint_name):
+	if not cmds.objExists(joint_name):
+		cmds.warning(f"Joint '{joint_name}' not found!")
+		return None
+
+	# สร้าง curve (ใช้ circle เป็นพื้นฐาน)
+	curve = cmds.circle(n=f"{joint_name}_ctrl", nr=(1, 0, 0), ch=False)[0]
+	cmds.matchTransform(curve, joint_name)
+
+	# Apply Rotation
+	try:
+		rx = ui_instance.rotate_LayoutJJX.value()
+		ry = ui_instance.rotate_LayoutJJY.value()
+		rz = ui_instance.rotate_LayoutJJZ.value()
+		cmds.rotate(rx, ry, rz, curve, relative=True)
+	except:
+		pass
+
+	# Apply Scale
+	try:
+		sx = ui_instance.scale_LayoutJJX.value()
+		sy = ui_instance.scale_LayoutJJY.value()
+		sz = ui_instance.scale_LayoutJJZ.value()
+		cmds.scale(sx, sy, sz, curve, relative=True)
+	except:
+		pass
+
+	# Apply Color
+	try:
+		color = ui_instance.colorSliderJJ.base_color
+		shapes = cmds.listRelatives(curve, s=True, type="nurbsCurve")
+		if shapes:
+			shape = shapes[0]
+			cmds.setAttr(f"{shape}.overrideEnabled", 1)
+			cmds.setAttr(f"{shape}.overrideRGBColors", 1)
+			cmds.setAttr(f"{shape}.overrideColorRGB", color.redF(), color.greenF(), color.blueF())
+	except:
+		pass
+
+	# Group Curves if checked
+	if ui_instance.Checkbox_CreateGroupJJ.isChecked():
+		grp = cmds.group(empty=True, name=f"{curve}_grp")
+		cmds.matchTransform(grp, curve)
+		cmds.parent(curve, grp)
+		return grp
+
+	return curve

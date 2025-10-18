@@ -14,7 +14,6 @@ import json
 import sys
 import importlib
 
-# --- ส่วนจัดการ Path และ Import ---
 SCRIPT_DIRECTORY = os.path.dirname(__file__)
 if SCRIPT_DIRECTORY not in sys.path:
 	sys.path.append(SCRIPT_DIRECTORY)
@@ -24,7 +23,12 @@ import util_curves as utc
 importlib.reload(utj)
 importlib.reload(utc)
 
-# --- ส่วนกำหนด Path ของ Library ---
+import util_iconreload as uir
+importlib.reload(uir)
+from util_iconreload import get_maya_icon
+
+
+#Library
 LIBRARY_DIRECTORY = os.path.join(SCRIPT_DIRECTORY, 'LIBRARY')
 os.makedirs(LIBRARY_DIRECTORY, exist_ok=True)
 
@@ -32,21 +36,6 @@ DEFAULT_JOINT_LIBRARY_PATH = os.path.join(LIBRARY_DIRECTORY, 'default_joints_lib
 JOINT_LIBRARY_PATH = os.path.join(LIBRARY_DIRECTORY, 'joints_library.json')
 CURVE_LIBRARY_PATH = os.path.join(LIBRARY_DIRECTORY, 'curves_library.json')
 DEFAULT_CURVE_LIBRARY_PATH = os.path.join(LIBRARY_DIRECTORY, 'default_curves_library.json')
-
-def get_maya_icon(name):
-    # ตรวจสอบ path ในโฟลเดอร์ test/ ก่อน
-    script_dir = os.path.dirname(__file__)
-    fallback = os.path.join(script_dir, "test", name)
-    if os.path.exists(fallback):
-        return QtGui.QIcon(fallback)
-
-    # ถ้าไม่เจอ ให้ลองโหลดจาก resource ภายใน Maya
-    icon = QtGui.QIcon(f":/{name}")
-    if not icon.isNull():
-        return icon
-
-    # ถ้าไม่เจอจริง ๆ ให้คืน icon ว่าง
-    return QtGui.QIcon()
 
 #########################################   FRAME   ###################################################
 class FramLayout(QtWidgets.QWidget):
@@ -73,33 +62,58 @@ class FramLayout(QtWidgets.QWidget):
 		self.frameLayout.addWidget(widget)
 
 #########################################   COLOR   ###################################################
+
+# main.py
+
+#########################################   COLOR   ###################################################
+
 class ColorSliderWidget(QtWidgets.QWidget):
 	def __init__(self, parent=None):
 		super().__init__(parent)
 		self.color_layout = QtWidgets.QHBoxLayout(self)
 		self.color_layout.setContentsMargins(0, 0, 0, 0)
 		self.color_layout.setSpacing(8)
-		self.base_color = QtGui.QColor(128, 128, 128)
+
+		# <<< เราจะเก็บสีพื้นฐาน และสีสุดท้ายที่ปรับความสว่างแล้ว แยกกัน >>>
+		self.base_color = QtGui.QColor(255, 255, 255) # สี default ขาว
+		self.final_color = QtGui.QColor(255, 255, 255)
+
 		self.color_show = QtWidgets.QPushButton()
 		self.color_show.setFixedSize(50, 18)
-		self.color_show.setStyleSheet("background-color: rgb(128,128,128); border: 1px solid #555;")
 		self.color_show.clicked.connect(self.pickColor)
+
 		self.color_slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
-		self.color_slider.setRange(0, 255)
-		self.color_slider.setValue(128)
+		self.color_slider.setRange(0, 255) # Slider มีค่า 0 (มืด) ถึง 255 (สว่าง)
+		self.color_slider.setValue(255) # เริ่มต้นที่สว่างสุด
 		self.color_slider.valueChanged.connect(self.updateColor)
+
 		self.color_layout.addWidget(QtWidgets.QLabel("Color"))
 		self.color_layout.addWidget(self.color_show)
 		self.color_layout.addWidget(self.color_slider)
+
+		# <<< เรียกใช้ updateColor ตอนเริ่มเพื่อให้สีแสดงผลถูกต้อง >>>
+		self.updateColor(self.color_slider.value())
+
 	def updateColor(self, value):
-		r = self.base_color.red()
-		g = self.base_color.green()
-		b = self.base_color.blue()
+		# <<< นี่คือส่วนที่แก้ไขหลัก >>>
+		# เราจะใช้ระบบสี HSV (Hue, Saturation, Value)
+		# โดย H, S จะมาจากสีที่เราเลือก (base_color)
+		# และ V (ความสว่าง) จะมาจากค่าของ slider
+		h, s, _, a = self.base_color.getHsv()
+		
+		# สร้างสีใหม่จากค่า H, S ของสีเดิม และ V จาก slider
+		self.final_color = QtGui.QColor()
+		self.final_color.setHsv(h, s, value, a)
+
+		# อัปเดตสีที่ปุ่มแสดงผล
+		r, g, b, _ = self.final_color.getRgb()
 		self.color_show.setStyleSheet(f"background-color: rgb({r},{g},{b}); border: 1px solid #555;")
+
 	def pickColor(self):
 		self.selected_color = QtWidgets.QColorDialog.getColor(self.base_color, self, "Select Color")
 		if self.selected_color.isValid():
 			self.base_color = self.selected_color
+			# <<< เมื่อเลือกสีใหม่ ให้เรียก updateColor เพื่อคำนวณความสว่างใหม่ทันที >>>
 			self.updateColor(self.color_slider.value())
 
 #########################################   MAIN   ###################################################
@@ -109,29 +123,26 @@ class JoinCurvesLibaryDialog(QtWidgets.QDialog):
 		self.setWindowTitle('Join&Curves Libary')
 		self.resize(300,600)
 		
-		# --- 1. กำหนดตัวแปร ---
 		self.library_data = {}
 		self.curve_library_data = {}
 		self.default_presets = ["body", "arm", "leg", "hand"]
 		
-		# --- 2. สร้าง Layout หลัก ---
+		#Layout หลัก
 		self.mainLayout = QtWidgets.QVBoxLayout(self)
 		self.setLayout(self.mainLayout)
 		
-		# --- 3. สร้าง UI ทั้งหมด ---
+		#2แม่ใหญ่
 		self.setup_joint_ui()
 		self.setup_curves_ui()
 		
-		# --- 4. เพิ่ม Widget เข้า Layout ---
 		self.mainLayout.addWidget(self.joint_frameLayout)
 		self.mainLayout.addWidget(self.curves_frameLayout)
 		self.mainLayout.addStretch()
 		
-		# --- 5. โหลดข้อมูลทั้งหมด ---
+		#โหลดข้อมูลทั้งหมด
 		self.reload_all_libraries()
 
 	def setup_joint_ui(self):
-		"""ฟังก์ชันสำหรับสร้าง UI ทั้งหมดที่เกี่ยวกับ Joint"""
 		self.joint_frameLayout = FramLayout("Joint Create")
 
 		self.joint_listWidget = QtWidgets.QListWidget()
@@ -194,7 +205,6 @@ class JoinCurvesLibaryDialog(QtWidgets.QDialog):
 		self.Checkbox_CreateCurvesJJ.toggled.connect(self.toggle_createCurves)
 
 	def setup_curves_ui(self):
-		"""ฟังก์ชันสำหรับสร้าง UI ทั้งหมดที่เกี่ยวกับ Curves"""
 		self.curves_frameLayout = FramLayout("Curves Create")
 
 		self.curves_listWidget = QtWidgets.QListWidget()
@@ -272,7 +282,7 @@ class JoinCurvesLibaryDialog(QtWidgets.QDialog):
 		self.Checkbox_CreateCurvesCC.toggled.connect(self.toggle_GroupCurves)
 
 	def reload_all_libraries(self):
-		"""โหลดข้อมูลทั้งหมดจากไฟล์ JSON และอัปเดต UI"""
+		#โหลดข้อมูลจากไฟล์ JSON 
 		print("\n--- Reloading all libraries ---")
 		self.joint_listWidget.clear()
 		self.curves_listWidget.clear()
