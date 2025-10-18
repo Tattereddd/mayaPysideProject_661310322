@@ -84,18 +84,16 @@ def create_curve_from_preset(ui_instance):
 	if not points:
 		return cmds.warning(f"Curve preset '{preset_name}' has no CV data.")
 
-	# <<< แก้ไขส่วนที่ 1: การตั้งชื่อ >>>
+	#การตั้งชื่อ
 	name_prefix = ui_instance.name_lineEdit.text() or preset_name
 	name_suffix = ui_instance.suffix_lineEdit.text()
 	final_name = f"{name_prefix}_{name_suffix}" if name_suffix else name_prefix
 	
-	# <<< เราจะใส่ 'name=final_name' เข้าไปในคำสั่งสร้างเลย >>>
-	# และลบ cmds.rename ทิ้ง
 	curve = cmds.curve(p=points, d=degree, name=final_name)
 	if form == 2:
 		cmds.closeCurve(curve, ch=False, ps=True, rpo=True)
 
-	# Apply transforms
+	#transforms
 	try:
 		rx = ui_instance.rotate_LayoutCCX.value()
 		ry = ui_instance.rotate_LayoutCCY.value()
@@ -111,7 +109,6 @@ def create_curve_from_preset(ui_instance):
 
 	# Color
 	try:
-		# <<< แก้ไขส่วนที่ 2: เปลี่ยนไปใช้ .final_color >>>
 		col = ui_instance.colorSliderCC.final_color
 		shapes = cmds.listRelatives(curve, shapes=True, type="nurbsCurve") or []
 		if shapes:

@@ -12,9 +12,7 @@ import util_iconreload as get_maya_icon
 importlib.reload(get_maya_icon)
 from util_iconreload import get_maya_icon
 
-### ---------------------------
-### โหลด icon + จัดการ List ของ Joint
-### ---------------------------
+
 def create_joint_item(name):
 	item = QtWidgets.QListWidgetItem(name)
 	item.setIcon(get_maya_icon("kinJoint.png"))
@@ -48,10 +46,6 @@ def del_Joint_WidgetsItem(ui_instance):
 		row = ui_instance.joint_listWidget.row(item)
 		ui_instance.joint_listWidget.takeItem(row)
 
-
-### ---------------------------
-### บันทึก / โหลด Joint Preset
-### ---------------------------
 def save_Library(ui_instance, library_path):
 	library_data = {}
 	custom_joints = [
@@ -135,9 +129,6 @@ def load_library(ui_instance, library_path):
 		cmds.warning(f"Could not load library file. Error: {e}")
 		return {}
 
-### ---------------------------
-### ฟังก์ชันสร้าง Joint + Curve
-### ---------------------------
 def create_from_preset(ui_instance):
 	selected_items = ui_instance.joint_listWidget.selectedItems()
 	if not selected_items:
@@ -183,19 +174,15 @@ def create_from_preset(ui_instance):
 	print(f"Successfully created '{preset_name}'.")
 
 
-### ---------------------------
-### สร้าง Curve สำหรับ Joint
-### ---------------------------
 def create_curve_on_joint(ui_instance, joint_name):
 	if not cmds.objExists(joint_name):
 		cmds.warning(f"Joint '{joint_name}' not found!")
 		return None
 
-	# สร้าง curve (ใช้ circle เป็นพื้นฐาน)
 	curve = cmds.circle(n=f"{joint_name}_ctrl", nr=(1, 0, 0), ch=False)[0]
 	cmds.matchTransform(curve, joint_name)
 
-	# Apply Rotation
+	#Rotation
 	try:
 		rx = ui_instance.rotate_LayoutJJX.value()
 		ry = ui_instance.rotate_LayoutJJY.value()
@@ -204,7 +191,7 @@ def create_curve_on_joint(ui_instance, joint_name):
 	except:
 		pass
 
-	# Apply Scale
+	#Scale
 	try:
 		sx = ui_instance.scale_LayoutJJX.value()
 		sy = ui_instance.scale_LayoutJJY.value()
@@ -213,7 +200,7 @@ def create_curve_on_joint(ui_instance, joint_name):
 	except:
 		pass
 
-	# Apply Color
+	#Color
 	try:
 		color = ui_instance.colorSliderJJ.base_color
 		shapes = cmds.listRelatives(curve, s=True, type="nurbsCurve")
@@ -225,7 +212,7 @@ def create_curve_on_joint(ui_instance, joint_name):
 	except:
 		pass
 
-	# Group Curves if checked
+	# Group checked
 	if ui_instance.Checkbox_CreateGroupJJ.isChecked():
 		grp = cmds.group(empty=True, name=f"{curve}_grp")
 		cmds.matchTransform(grp, curve)
