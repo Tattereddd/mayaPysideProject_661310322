@@ -18,8 +18,10 @@ if SCRIPT_DIRECTORY not in sys.path:
 
 import util_joint as utj
 import util_curves as utc
+import util_addicon as uai
 importlib.reload(utj)
 importlib.reload(utc)
+importlib.reload(uai)
 
 import util_iconreload as uir
 importlib.reload(uir)
@@ -29,6 +31,11 @@ from util_iconreload import get_maya_icon
 #Library
 LIBRARY_DIRECTORY = os.path.join(SCRIPT_DIRECTORY, 'LIBRARY')
 os.makedirs(LIBRARY_DIRECTORY, exist_ok=True)
+
+CURVE_ICONS_DIRECTORY = os.path.join(SCRIPT_DIRECTORY, 'icons', 'icons_curves')
+JOINT_ICONS_DIRECTORY = os.path.join(SCRIPT_DIRECTORY, 'icons', 'icons_joint')
+os.makedirs(CURVE_ICONS_DIRECTORY, exist_ok=True)
+os.makedirs(JOINT_ICONS_DIRECTORY, exist_ok=True)
 
 DEFAULT_JOINT_LIBRARY_PATH = os.path.join(LIBRARY_DIRECTORY, 'default_joints_library.json')
 JOINT_LIBRARY_PATH = os.path.join(LIBRARY_DIRECTORY, 'joints_library.json')
@@ -170,7 +177,9 @@ class JoinCurvesLibaryDialog(QtWidgets.QDialog):
 		self.scale_LayoutJJ = QtWidgets.QHBoxLayout()
 		self.scale_LayoutJJ.addWidget(QtWidgets.QLabel('Scale'))
 		self.scale_LayoutJJX, self.scale_LayoutJJY, self.scale_LayoutJJZ = [QtWidgets.QDoubleSpinBox() for _ in range(3)]
-		for w in [self.scale_LayoutJJX, self.scale_LayoutJJY, self.scale_LayoutJJZ]: self.scale_LayoutJJ.addWidget(w)
+		for w in [self.scale_LayoutJJX, self.scale_LayoutJJY, self.scale_LayoutJJZ]: 
+			w.setValue(1.0)
+			self.scale_LayoutJJ.addWidget(w)
 		self.childJJ_frameLayout.addLayout(self.scale_LayoutJJ)
 
 		self.color_LayoutJJ = QtWidgets.QHBoxLayout()
@@ -250,7 +259,9 @@ class JoinCurvesLibaryDialog(QtWidgets.QDialog):
 		self.scale_LayoutCC = QtWidgets.QHBoxLayout()
 		self.scale_LayoutCC.addWidget(QtWidgets.QLabel('Scale'))
 		self.scale_LayoutCCX, self.scale_LayoutCCY, self.scale_LayoutCCZ = [QtWidgets.QDoubleSpinBox() for _ in range(3)]
-		for w in [self.scale_LayoutCCX, self.scale_LayoutCCY, self.scale_LayoutCCZ]: self.scale_LayoutCC.addWidget(w)
+		for w in [self.scale_LayoutCCX, self.scale_LayoutCCY, self.scale_LayoutCCZ]: 
+			w.setValue(1.0)
+			self.scale_LayoutCC.addWidget(w)
 		self.curves_frameLayout.frameLayout.addLayout(self.scale_LayoutCC)
 
 		self.color_LayoutCC = QtWidgets.QHBoxLayout()
@@ -284,8 +295,21 @@ class JoinCurvesLibaryDialog(QtWidgets.QDialog):
 		print("--- Reload complete ---")
 
 	def add_joint_item(self):
-		utj.add_Joint_WidgetsItem(self)
+		sels = cmds.ls(sl=True, type='joint')
+		if not sels: return cmds.warning("Please select a root joint!")
+		joint_to_add = sels[0]
+
+		# <<< จุดแก้ไขที่ 1: ทำความสะอาดชื่อ และใช้ Path ที่ถูกต้อง >>>
+		sanitized_name = joint_to_add.replace(':', '_').replace('|', '_')
+		icon_path = os.path.join(JOINT_ICONS_DIRECTORY, f"{sanitized_name}.png")
+		uai.playblast_icon(joint_to_add, icon_path)
+
+		if not self.joint_listWidget.findItems(joint_to_add, QtCore.Qt.MatchExactly):
+			item = utj.create_joint_item(joint_to_add)
+			self.joint_listWidget.addItem(item)
+			
 		utj.save_Library(self, JOINT_LIBRARY_PATH)
+		self.reload_all_libraries()
 
 	def del_joint_item(self):
 		utj.del_Joint_WidgetsItem(self)
@@ -297,12 +321,18 @@ class JoinCurvesLibaryDialog(QtWidgets.QDialog):
 	def add_curve_item(self):
 		selection = cmds.ls(sl=True)
 		if not selection: return cmds.warning("Please select a curve to add.")
+
 		for sel in selection:
 			shape = cmds.listRelatives(sel, s=True, type='nurbsCurve')
-			if shape and not self.curves_listWidget.findItems(sel, QtCore.Qt.MatchExactly):
-				item = QtWidgets.QListWidgetItem(sel)
-				item.setIcon(get_maya_icon("out_curve.png"))
-				self.curves_listWidget.addItem(item)
+			if shape:
+				sanitized_name = sel.replace(':', '_').replace('|', '_')
+				icon_path = os.path.join(CURVE_ICONS_DIRECTORY, f"{sanitized_name}.png")
+				uai.playblast_icon(sel, icon_path)
+
+				if not self.curves_listWidget.findItems(sel, QtCore.Qt.MatchExactly):
+					item = utc.create_curve_item(sel)
+					self.curves_listWidget.addItem(item)
+
 		utc.save_curve_library(self, CURVE_LIBRARY_PATH)
 		self.reload_all_libraries()
 

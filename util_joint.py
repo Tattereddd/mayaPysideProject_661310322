@@ -8,14 +8,28 @@ import json
 import os
 import importlib
 
-import util_iconreload as get_maya_icon
-importlib.reload(get_maya_icon)
+import util_iconreload as uir
+importlib.reload(uir)
 from util_iconreload import get_maya_icon
 
 
+SCRIPT_DIRECTORY = os.path.dirname(__file__)
+LIBRARY_DIRECTORY = os.path.join(SCRIPT_DIRECTORY, '..', 'LIBRARY')
+ICONS_DIRECTORY = os.path.join(LIBRARY_DIRECTORY, 'ICONS')
+
+JOINT_ICONS_DIRECTORY = os.path.join(os.path.dirname(__file__), '..', 'icons', 'icons_joint')
+
 def create_joint_item(name):
 	item = QtWidgets.QListWidgetItem(name)
-	item.setIcon(get_maya_icon("kinJoint.png"))
+	
+	sanitized_name = name.replace(':', '_').replace('|', '_')
+	custom_icon_path = os.path.join(JOINT_ICONS_DIRECTORY, f"{sanitized_name}.png")
+
+	if os.path.exists(custom_icon_path):
+		item.setIcon(QtGui.QIcon(custom_icon_path))
+	else:
+		item.setIcon(get_maya_icon("kinJoint.png"))
+
 	return item
 
 def add_Joint_WidgetsItem(ui_instance):
@@ -107,10 +121,10 @@ def load_default_library(ui_instance, library_path):
 				item = create_joint_item(root_name)
 				ui_instance.joint_listWidget.addItem(item)
 
-		print(f"Loaded {len(library_data)} default joint blueprints.")
+		print(f"Loaded {len(library_data)} default joint ")
 		return library_data
 	except Exception as e:
-		cmds.warning(f"Could not load default joint library file. Error: {e}")
+		cmds.warning(f"Error: {e}")
 		return {}
 
 def load_library(ui_instance, library_path):
@@ -123,20 +137,20 @@ def load_library(ui_instance, library_path):
 			if not ui_instance.joint_listWidget.findItems(root_name, QtCore.Qt.MatchExactly):
 				item = create_joint_item(root_name)
 				ui_instance.joint_listWidget.addItem(item)
-		print(f"Loaded {len(library_data)} user joint blueprints.")
+		print(f"Loaded {len(library_data)} joint")
 		return library_data
 	except Exception as e:
-		cmds.warning(f"Could not load library file. Error: {e}")
+		cmds.warning(f"Error: {e}")
 		return {}
 
 def create_from_preset(ui_instance):
 	selected_items = ui_instance.joint_listWidget.selectedItems()
 	if not selected_items:
-		return cmds.warning("Please select an item to create.")
+		return cmds.warning("select item to create.")
 	preset_name = selected_items[0].text()
 
 	if preset_name not in ui_instance.library_data:
-		return cmds.warning(f"Blueprint for '{preset_name}' not found!")
+		return cmds.warning(f"'{preset_name}' not found!")
 
 	blueprint = ui_instance.library_data[preset_name]["joints"]
 	name_map = {}
@@ -158,7 +172,7 @@ def create_from_preset(ui_instance):
 				try:
 					cmds.parent(actual_child, actual_parent)
 				except Exception as e:
-					print(f"  ERROR parenting: {e}")
+					print(f"  ERROR {e}")
 
 	root_joint_actual_name = name_map[blueprint[0]["name"]]
 	cmds.joint(root_joint_actual_name, edit=True, orientJoint='xyz', secondaryAxisOrient='yup', children=True, zeroScaleOrient=True)
