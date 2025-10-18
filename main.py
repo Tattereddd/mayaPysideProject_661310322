@@ -1,5 +1,3 @@
-# main.py (Final Version)
-
 try:
 	from PySide6 import QtCore, QtGui, QtWidgets
 	from shiboken6 import wrapInstance
@@ -63,10 +61,6 @@ class FramLayout(QtWidgets.QWidget):
 
 #########################################   COLOR   ###################################################
 
-# main.py
-
-#########################################   COLOR   ###################################################
-
 class ColorSliderWidget(QtWidgets.QWidget):
 	def __init__(self, parent=None):
 		super().__init__(parent)
@@ -74,7 +68,6 @@ class ColorSliderWidget(QtWidgets.QWidget):
 		self.color_layout.setContentsMargins(0, 0, 0, 0)
 		self.color_layout.setSpacing(8)
 
-		# <<< เราจะเก็บสีพื้นฐาน และสีสุดท้ายที่ปรับความสว่างแล้ว แยกกัน >>>
 		self.base_color = QtGui.QColor(255, 255, 255) # สี default ขาว
 		self.final_color = QtGui.QColor(255, 255, 255)
 
@@ -83,25 +76,20 @@ class ColorSliderWidget(QtWidgets.QWidget):
 		self.color_show.clicked.connect(self.pickColor)
 
 		self.color_slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
-		self.color_slider.setRange(0, 255) # Slider มีค่า 0 (มืด) ถึง 255 (สว่าง)
-		self.color_slider.setValue(255) # เริ่มต้นที่สว่างสุด
+		self.color_slider.setRange(0, 255) 
+		self.color_slider.setValue(255) # เริ่มที่สว่างสุด
 		self.color_slider.valueChanged.connect(self.updateColor)
 
 		self.color_layout.addWidget(QtWidgets.QLabel("Color"))
 		self.color_layout.addWidget(self.color_show)
 		self.color_layout.addWidget(self.color_slider)
 
-		# <<< เรียกใช้ updateColor ตอนเริ่มเพื่อให้สีแสดงผลถูกต้อง >>>
+		#เรียกใช้ updateColor ให้สีแสดถูก
 		self.updateColor(self.color_slider.value())
 
 	def updateColor(self, value):
-		# <<< นี่คือส่วนที่แก้ไขหลัก >>>
-		# เราจะใช้ระบบสี HSV (Hue, Saturation, Value)
-		# โดย H, S จะมาจากสีที่เราเลือก (base_color)
-		# และ V (ความสว่าง) จะมาจากค่าของ slider
 		h, s, _, a = self.base_color.getHsv()
 		
-		# สร้างสีใหม่จากค่า H, S ของสีเดิม และ V จาก slider
 		self.final_color = QtGui.QColor()
 		self.final_color.setHsv(h, s, value, a)
 
@@ -113,7 +101,6 @@ class ColorSliderWidget(QtWidgets.QWidget):
 		self.selected_color = QtWidgets.QColorDialog.getColor(self.base_color, self, "Select Color")
 		if self.selected_color.isValid():
 			self.base_color = self.selected_color
-			# <<< เมื่อเลือกสีใหม่ ให้เรียก updateColor เพื่อคำนวณความสว่างใหม่ทันที >>>
 			self.updateColor(self.color_slider.value())
 
 #########################################   MAIN   ###################################################
