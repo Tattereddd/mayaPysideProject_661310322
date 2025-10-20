@@ -1,11 +1,11 @@
 {
-    "L_hip_jnt": {
+    "hip_jnt": {
         "joints": [
-            { "name": "L_hip_jnt", "parent": "pelvis_jnt", "translation": [ 1.2959, 11.9144, 0.0419 ], "orientation": [ -89.999, -4.59e-14, 170.605 ] },
-            { "name": "L_knee_jnt", "parent": "L_hip_jnt", "translation": [ 1.2959, 6.6024, 0.3122 ], "orientation": [ 90.0, 0.0, -5.9106 ] },
-            { "name": "L_ankle_jnt", "parent": "L_knee_jnt", "translation": [ 1.2959, 0.9982, 0.0187 ], "orientation": [ -90.0, 0.0, -68.029 ] },
-            { "name": "L_ball_jnt", "parent": "L_ankle_jnt", "translation": [ 1.2959, -0.0124, 2.1892 ], "orientation": [ 90.0, 0.0, 24.968 ] },
-            { "name": "L_toe_jnt", "parent": "L_ball_jnt", "translation": [ 1.2959, -0.0124, 4.1774 ], "orientation": [ 90.0, 0.0, 0.0 ] }
+            { "name": "hip_jnt", "parent": "pelvis_jnt", "translation": [ 1.2959, 11.9144, 0.0419 ], "orientation": [ -89.999, -4.59e-14, 170.605 ] },
+            { "name": "knee_jnt", "parent": "hip_jnt", "translation": [ 1.2959, 6.6024, 0.3122 ], "orientation": [ 90.0, 0.0, -5.9106 ] },
+            { "name": "ankle_jnt", "parent": "knee_jnt", "translation": [ 1.2959, 0.9982, 0.0187 ], "orientation": [ -90.0, 0.0, -68.029 ] },
+            { "name": "ball_jnt", "parent": "ankle_jnt", "translation": [ 1.2959, -0.0124, 2.1892 ], "orientation": [ 90.0, 0.0, 24.968 ] },
+            { "name": "toe_jnt", "parent": "ball_jnt", "translation": [ 1.2959, -0.0124, 4.1774 ], "orientation": [ 90.0, 0.0, 0.0 ] }
         ]
     },
     "L_clavicle_jnt": {
@@ -51,28 +51,28 @@
             { "name": "jawtip_jnt", "parent": "jaw_jnt", "translation": [ -0.0, 22.886, 2.726 ], "orientation": [ -29.852, 89.999, 0.0 ] }
         ]
     },
-    "L_wrist_jnt": {
+    "wrist_jnt": {
         "joints": [
-            { "name": "L_wrist_jnt", "parent": "L_elbow_jnt", "translation": [ 9.846, 21.018, 0.0 ], "orientation": [ 0.0, 0.0, 0.0 ] },
-            { "name": "L_mid1_jnt", "parent": "L_wrist_jnt", "translation": [ 11.706, 21.156, 0.258 ], "orientation": [ 0.0, 4.134, 0.0 ] },
-            { "name": "L_ring1_jnt", "parent": "L_wrist_jnt", "translation": [ 11.652, 21.116, -0.210 ], "orientation": [ 0.0, 4.134, 0.0 ] },
-            { "name": "L_index1_jnt", "parent": "L_wrist_jnt", "translation": [ 11.655, 21.119, 0.709 ], "orientation": [ 0.0, 4.134, 0.0 ] },
-            { "name": "L_pinky1_jnt", "parent": "L_wrist_jnt", "translation": [ 11.659, 21.080, -0.623 ], "orientation": [ 0.0, 4.134, 0.0 ] },
-            { "name": "L_thumb1_jnt", "parent": "L_wrist_jnt", "translation": [ 10.598, 20.930, 0.931 ], "orientation": [ 86.869, -48.488, -46.983 ] },
-            { "name": "L_mid2_jnt", "parent": "L_mid1_jnt", "translation": [ 12.751, 21.156, 0.258 ], "orientation": [ 0.0, 0.0, 0.0 ] },
-            { "name": "L_ring2_jnt", "parent": "L_ring1_jnt", "translation": [ 12.650, 21.116, -0.210 ], "orientation": [ 0.0, 0.0, 0.0 ] },
-            { "name": "L_index2_jnt", "parent": "L_index1_jnt", "translation": [ 12.644, 21.119, 0.709 ], "orientation": [ 0.0, 0.0, 0.0 ] },
-            { "name": "L_pinky2_jnt", "parent": "L_pinky1_jnt", "translation": [ 12.366, 21.080, -0.669 ], "orientation": [ 0.0, 0.0, 0.0 ] },
-            { "name": "L_thumb2_jnt", "parent": "L_thumb1_jnt", "translation": [ 10.929, 20.526, 1.581 ], "orientation": [ 41.481, -4.280, 7.436 ] },
-            { "name": "L_mid3_jnt", "parent": "L_mid2_jnt", "translation": [ 13.419, 21.156, 0.259 ], "orientation": [ -90.0, 0.0, 0.0 ] },
-            { "name": "L_ring3_jnt", "parent": "L_ring2_jnt", "translation": [ 13.240, 21.107, -0.209 ], "orientation": [ -90.0, 0.0, 0.0 ] },
-            { "name": "L_index3_jnt", "parent": "L_index2_jnt", "translation": [ 13.217, 21.119, 0.709 ], "orientation": [ -90.0, 0.0, 0.0 ] },
-            { "name": "L_pinky3_jnt", "parent": "L_pinky2_jnt", "translation": [ 12.950, 21.078, -0.680 ], "orientation": [ -90.0, 0.0, 0.0 ] },
-            { "name": "L_thumb3_jnt", "parent": "L_thumb2_jnt", "translation": [ 11.199, 20.271, 2.203 ], "orientation": [ 0.0, 0.0, 0.0 ] },
-            { "name": "L_mid4_jnt", "parent": "L_mid3_jnt", "translation": [ 14.020, 21.156, 0.259 ], "orientation": [ 180.0, 0.0, 0.0 ] },
-            { "name": "L_ring4_jnt", "parent": "L_ring3_jnt", "translation": [ 13.865, 21.107, -0.209 ], "orientation": [ 180.0, 0.0, 0.0 ] },
-            { "name": "L_index4_jnt", "parent": "L_index3_jnt", "translation": [ 13.869, 21.119, 0.709 ], "orientation": [ 180.0, 0.0, 0.0 ] },
-            { "name": "L_pinky4_jnt", "parent": "L_pinky3_jnt", "translation": [ 13.492, 21.078, -0.680 ], "orientation": [ 180.0, 0.0, 0.0 ] }
+            { "name": "wrist_jnt", "parent": "elbow_jnt", "translation": [ 9.846, 21.018, 0.0 ], "orientation": [ 0.0, 0.0, 0.0 ] },
+            { "name": "mid1_jnt", "parent": "wrist_jnt", "translation": [ 11.706, 21.156, 0.258 ], "orientation": [ 0.0, 4.134, 0.0 ] },
+            { "name": "ring1_jnt", "parent": "wrist_jnt", "translation": [ 11.652, 21.116, -0.210 ], "orientation": [ 0.0, 4.134, 0.0 ] },
+            { "name": "index1_jnt", "parent": "wrist_jnt", "translation": [ 11.655, 21.119, 0.709 ], "orientation": [ 0.0, 4.134, 0.0 ] },
+            { "name": "pinky1_jnt", "parent": "wrist_jnt", "translation": [ 11.659, 21.080, -0.623 ], "orientation": [ 0.0, 4.134, 0.0 ] },
+            { "name": "thumb1_jnt", "parent": "wrist_jnt", "translation": [ 10.598, 20.930, 0.931 ], "orientation": [ 86.869, -48.488, -46.983 ] },
+            { "name": "mid2_jnt", "parent": "mid1_jnt", "translation": [ 12.751, 21.156, 0.258 ], "orientation": [ 0.0, 0.0, 0.0 ] },
+            { "name": "ring2_jnt", "parent": "ring1_jnt", "translation": [ 12.650, 21.116, -0.210 ], "orientation": [ 0.0, 0.0, 0.0 ] },
+            { "name": "index2_jnt", "parent": "index1_jnt", "translation": [ 12.644, 21.119, 0.709 ], "orientation": [ 0.0, 0.0, 0.0 ] },
+            { "name": "pinky2_jnt", "parent": "pinky1_jnt", "translation": [ 12.366, 21.080, -0.669 ], "orientation": [ 0.0, 0.0, 0.0 ] },
+            { "name": "thumb2_jnt", "parent": "thumb1_jnt", "translation": [ 10.929, 20.526, 1.581 ], "orientation": [ 41.481, -4.280, 7.436 ] },
+            { "name": "mid3_jnt", "parent": "mid2_jnt", "translation": [ 13.419, 21.156, 0.259 ], "orientation": [ -90.0, 0.0, 0.0 ] },
+            { "name": "ring3_jnt", "parent": "ring2_jnt", "translation": [ 13.240, 21.107, -0.209 ], "orientation": [ -90.0, 0.0, 0.0 ] },
+            { "name": "index3_jnt", "parent": "index2_jnt", "translation": [ 13.217, 21.119, 0.709 ], "orientation": [ -90.0, 0.0, 0.0 ] },
+            { "name": "pinky3_jnt", "parent": "pinky2_jnt", "translation": [ 12.950, 21.078, -0.680 ], "orientation": [ -90.0, 0.0, 0.0 ] },
+            { "name": "thumb3_jnt", "parent": "thumb2_jnt", "translation": [ 11.199, 20.271, 2.203 ], "orientation": [ 0.0, 0.0, 0.0 ] },
+            { "name": "mid4_jnt", "parent": "mid3_jnt", "translation": [ 14.020, 21.156, 0.259 ], "orientation": [ 180.0, 0.0, 0.0 ] },
+            { "name": "ring4_jnt", "parent": "ring3_jnt", "translation": [ 13.865, 21.107, -0.209 ], "orientation": [ 180.0, 0.0, 0.0 ] },
+            { "name": "index4_jnt", "parent": "index3_jnt", "translation": [ 13.869, 21.119, 0.709 ], "orientation": [ 180.0, 0.0, 0.0 ] },
+            { "name": "pinky4_jnt", "parent": "pinky3_jnt", "translation": [ 13.492, 21.078, -0.680 ], "orientation": [ 180.0, 0.0, 0.0 ] }
         ]
     }
 }

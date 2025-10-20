@@ -1,3 +1,5 @@
+#########################################   IMPORT   ###################################################
+
 try:
 	from PySide6 import QtGui, QtWidgets, QtCore
 except:
@@ -7,65 +9,80 @@ import maya.cmds as cmds
 import json
 import os
 import importlib
-
-import util_iconreload as uir
-importlib.reload(uir)
-from util_iconreload import get_maya_icon
+import glob
+import main
 
 
 SCRIPT_DIRECTORY = os.path.dirname(__file__)
 LIBRARY_DIRECTORY = os.path.join(SCRIPT_DIRECTORY, '..', 'LIBRARY')
 ICONS_DIRECTORY = os.path.join(LIBRARY_DIRECTORY, 'ICONS')
 
-JOINT_ICONS_DIRECTORY = os.path.join(os.path.dirname(__file__), '..', 'icons', 'icons_joint')
+JOINT_ICONS_DIRECTORY = os.path.join(main.SCRIPT_DIRECTORY, 'icons', 'icons_joint')
 
 def create_joint_item(name):
 	item = QtWidgets.QListWidgetItem(name)
-	
-	sanitized_name = name.replace(':', '_').replace('|', '_')
-	custom_icon_path = os.path.join(JOINT_ICONS_DIRECTORY, f"{sanitized_name}.png")
 
-	if os.path.exists(custom_icon_path):
-		item.setIcon(QtGui.QIcon(custom_icon_path))
-	else:
-		item.setIcon(get_maya_icon("kinJoint.png"))
+	# สร้างชื่อสองแบบยาวดับสั้นกันชื่อผิด แทนอักขระพิเศษด้วย _ 
+	sanitized_full = name.replace(':', '_').replace('|', '_')
+	short_name = name.split('|')[-1]
+	sanitized_short = short_name.replace(':', '_').replace('|', '_')
+
+	custom_icon_path_full = os.path.join(JOINT_ICONS_DIRECTORY, f"{sanitized_full}.png")
+	custom_icon_path_short = os.path.join(JOINT_ICONS_DIRECTORY, f"{sanitized_short}.png")
+
+	if os.path.exists(custom_icon_path_full):
+		item.setIcon(QtGui.QIcon(custom_icon_path_full))
+	elif os.path.exists(custom_icon_path_short):
+		item.setIcon(QtGui.QIcon(custom_icon_path_short))
 
 	return item
-
-def add_Joint_WidgetsItem(ui_instance):
-	sels = cmds.ls(sl=True, type='joint')
-	if not sels:
-		cmds.warning("Please select a root joint!")
-		return
-	if len(sels) > 1:
-		cmds.warning("Please select only one root joint.")
-		return
-
-	joint_to_add = sels[0]
-	existing_items = [ui_instance.joint_listWidget.item(i).text() for i in range(ui_instance.joint_listWidget.count())]
-
-	if joint_to_add not in existing_items:
-		item = create_joint_item(joint_to_add)
-		ui_instance.joint_listWidget.addItem(item)
-		print(f"Added '{joint_to_add}' to the library.")
-	else:
-		cmds.warning(f"'{joint_to_add}' is already in the library.")
 
 def del_Joint_WidgetsItem(ui_instance):
 	selected_items = ui_instance.joint_listWidget.selectedItems()
 	if not selected_items:
-		cmds.warning("Please select an item to delete.")
+		cmds.warning("Select to DELETE!!!!")
 		return
+
+	# ดึง path จาก main.py ผ่าน ui_instance
+	joint_library_path = getattr(ui_instance, "JOINT_LIBRARY_PATH", None)
+	joint_icons_dir = getattr(ui_instance, "JOINT_ICONS_DIRECTORY", None)
+
 	for item in selected_items:
+		item_name = item.text()
 		row = ui_instance.joint_listWidget.row(item)
 		ui_instance.joint_listWidget.takeItem(row)
+
+		#ลบไฟล์ไอคอน
+		if joint_icons_dir:
+			sanitized_name = item_name.replace(':', '_').replace('|', '_')
+			icon_pattern = os.path.join(joint_icons_dir, f"{sanitized_name}_*.png")
+			for f in glob.glob(icon_pattern):
+				try:
+					os.remove(f)
+					print(f"[INFO] Deleted joint icon: {f}")
+				except Exception as e:
+					cmds.warning(f"⚠️ERROR not delete icon {f}: {e}")
+
+		#ลบข้อมูลออกจาก JSON
+		if joint_library_path and os.path.exists(joint_library_path):
+			try:
+				with open(joint_library_path, 'r') as f:
+					data = json.load(f)
+
+				if item_name in data:
+					del data[item_name]
+					with open(joint_library_path, 'w') as f:
+						json.dump(data, f, indent=4)
+					print(f"[INFO] Removed '{item_name}' from joint library .json")
+			except Exception as e:
+				cmds.warning(f"⚠️Error updating .json: {e}")
 
 def save_Library(ui_instance, library_path):
 	library_data = {}
 	custom_joints = [
 		ui_instance.joint_listWidget.item(i).text()
 		for i in range(ui_instance.joint_listWidget.count())
-		if ui_instance.joint_listWidget.item(i).text() not in ui_instance.default_presets
+		if ui_instance.joint_listWidget.item(i).text() not in ui_instance.default_presetsJJ
 	]
 
 	for root_name in custom_joints:
@@ -92,7 +109,7 @@ def save_Library(ui_instance, library_path):
 		
 		library_data[root_name] = entry_data
 
-	keys_to_delete = [key for key in ui_instance.library_data if key not in ui_instance.default_presets]
+	keys_to_delete = [key for key in ui_instance.library_data if key not in ui_instance.default_presetsJJ]
 	for key in keys_to_delete:
 		del ui_instance.library_data[key]
 	ui_instance.library_data.update(library_data)
@@ -105,27 +122,34 @@ def save_Library(ui_instance, library_path):
 		cmds.warning(f"not save: {e}")
 
 def load_default_library(ui_instance, library_path):
-	if not os.path.exists(library_path):
-		for preset_name in ui_instance.default_presets:
-			if not ui_instance.joint_listWidget.findItems(preset_name, QtCore.Qt.MatchExactly):
-				item = create_joint_item(preset_name)
-				ui_instance.joint_listWidget.addItem(item)
-		return {}
+    DEFAULT_ICONS_PATH = os.path.join(main.SCRIPT_DIRECTORY, 'iconsdefault', 'joint')
+    print(f"🔍 Checking default icons in: {DEFAULT_ICONS_PATH}")
 
-	try:
-		with open(library_path, 'r') as f:
-			library_data = json.load(f)
+    library_data = {}
+    # ถ้ามีไฟล์ .json ก็โหลดก่อน
+    if os.path.exists(library_path):
+        try:
+            with open(library_path, 'r') as f:
+                library_data = json.load(f)
+        except Exception as e:
+            cmds.warning(f"Error loading default joint library .json: {e}")
 
-		for root_name in library_data.keys():
-			if not ui_instance.joint_listWidget.findItems(root_name, QtCore.Qt.MatchExactly):
-				item = create_joint_item(root_name)
-				ui_instance.joint_listWidget.addItem(item)
+    #เพิ่ม presets พร้อม icons
+    for preset_name in ui_instance.default_presetsJJ:
+        if not ui_instance.joint_listWidget.findItems(preset_name, QtCore.Qt.MatchExactly):
+            item = QtWidgets.QListWidgetItem(preset_name)
 
-		print(f"Loaded {len(library_data)} default joint ")
-		return library_data
-	except Exception as e:
-		cmds.warning(f"Error: {e}")
-		return {}
+            preset_icon = os.path.join(DEFAULT_ICONS_PATH, f"{preset_name}.png")
+            if os.path.exists(preset_icon):
+                print(f"✅ Found icon for preset '{preset_name}': {preset_icon}")
+                item.setIcon(QtGui.QIcon(preset_icon))
+            else:
+                print(f"⚠️ Icon not found preset '{preset_name}'")
+
+            ui_instance.joint_listWidget.addItem(item)
+
+    print(f"Loaded {len(library_data)} default joints.")
+    return library_data
 
 def load_library(ui_instance, library_path):
 	if not os.path.exists(library_path):

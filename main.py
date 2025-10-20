@@ -1,3 +1,5 @@
+#########################################   IMPORT   ###################################################
+
 try:
 	from PySide6 import QtCore, QtGui, QtWidgets
 	from shiboken6 import wrapInstance
@@ -5,42 +7,42 @@ except:
 	from PySide2 import QtCore, QtGui, QtWidgets
 	from shiboken2 import wrapInstance
 
+
 import maya.OpenMayaUI as omui
 import maya.cmds as cmds
 import os
 import json
 import sys
+import glob
 import importlib
-
-SCRIPT_DIRECTORY = os.path.dirname(__file__)
-if SCRIPT_DIRECTORY not in sys.path:
-	sys.path.append(SCRIPT_DIRECTORY)
-
 import util_joint as utj
 import util_curves as utc
 import util_addicon as uai
 importlib.reload(utj)
 importlib.reload(utc)
 importlib.reload(uai)
+from util_addicon import playblast_icon, sanitize_name
 
-import util_iconreload as uir
-importlib.reload(uir)
-from util_iconreload import get_maya_icon
+#########################################   LIBRARY   ###################################################
 
+SCRIPT_DIRECTORY = os.path.dirname(__file__)
+if SCRIPT_DIRECTORY not in sys.path:
+	sys.path.append(SCRIPT_DIRECTORY)
 
-#Library
 LIBRARY_DIRECTORY = os.path.join(SCRIPT_DIRECTORY, 'LIBRARY')
 os.makedirs(LIBRARY_DIRECTORY, exist_ok=True)
 
 CURVE_ICONS_DIRECTORY = os.path.join(SCRIPT_DIRECTORY, 'icons', 'icons_curves')
 JOINT_ICONS_DIRECTORY = os.path.join(SCRIPT_DIRECTORY, 'icons', 'icons_joint')
+
 os.makedirs(CURVE_ICONS_DIRECTORY, exist_ok=True)
 os.makedirs(JOINT_ICONS_DIRECTORY, exist_ok=True)
 
 DEFAULT_JOINT_LIBRARY_PATH = os.path.join(LIBRARY_DIRECTORY, 'default_joints_library.json')
+DEFAULT_CURVE_LIBRARY_PATH = os.path.join(LIBRARY_DIRECTORY, 'default_curves_library.json')
+
 JOINT_LIBRARY_PATH = os.path.join(LIBRARY_DIRECTORY, 'joints_library.json')
 CURVE_LIBRARY_PATH = os.path.join(LIBRARY_DIRECTORY, 'curves_library.json')
-DEFAULT_CURVE_LIBRARY_PATH = os.path.join(LIBRARY_DIRECTORY, 'default_curves_library.json')
 
 #########################################   FRAME   ###################################################
 class FramLayout(QtWidgets.QWidget):
@@ -102,7 +104,7 @@ class ColorSliderWidget(QtWidgets.QWidget):
 
 		# อัปเดตสีที่ปุ่มแสดงผล
 		r, g, b, _ = self.final_color.getRgb()
-		self.color_show.setStyleSheet(f"background-color: rgb({r},{g},{b}); border: 1px solid #555;")
+		self.color_show.setStyleSheet(f"	background-color: rgb({r},{g},{b}); border: 1px solid #555;")
 
 	def pickColor(self):
 		self.selected_color = QtWidgets.QColorDialog.getColor(self.base_color, self, "Select Color")
@@ -115,11 +117,12 @@ class JoinCurvesLibaryDialog(QtWidgets.QDialog):
 	def __init__(self,parent=None):
 		super().__init__(parent)
 		self.setWindowTitle('Join&Curves Libary')
-		self.resize(300,600)
+		self.resize(315,600)
 		
 		self.library_data = {}
 		self.curve_library_data = {}
-		self.default_presets = ["body", "arm", "leg", "hand"]
+		self.default_presetsJJ = ["hip", "L_clavicle", "root", "wrist"]
+		self.default_presetsCC = ["circle", "cube", "star", "starburst"]
 		
 		#Layout หลัก
 		self.mainLayout = QtWidgets.QVBoxLayout(self)
@@ -135,7 +138,12 @@ class JoinCurvesLibaryDialog(QtWidgets.QDialog):
 		
 		#โหลดข้อมูลทั้งหมด
 		self.reload_all_libraries()
+		self.JOINT_LIBRARY_PATH = JOINT_LIBRARY_PATH
+		self.CURVE_LIBRARY_PATH = CURVE_LIBRARY_PATH
+		self.JOINT_ICONS_DIRECTORY = JOINT_ICONS_DIRECTORY
+		self.CURVE_ICONS_DIRECTORY = CURVE_ICONS_DIRECTORY
 
+	#########################################################################     JIONT
 	def setup_joint_ui(self):
 		self.joint_frameLayout = FramLayout("Joint Create")
 
@@ -200,6 +208,7 @@ class JoinCurvesLibaryDialog(QtWidgets.QDialog):
 		self.createButtonJJ.clicked.connect(self.create_preset_item)
 		self.Checkbox_CreateCurvesJJ.toggled.connect(self.toggle_createCurves)
 
+	#########################################################################     CURVES
 	def setup_curves_ui(self):
 		self.curves_frameLayout = FramLayout("Curves Create")
 
@@ -278,7 +287,7 @@ class JoinCurvesLibaryDialog(QtWidgets.QDialog):
 		self.buttonDelCC.clicked.connect(self.del_curve_item)
 		self.createButtonCC.clicked.connect(self.create_curve_item)
 		self.Checkbox_CreateCurvesCC.toggled.connect(self.toggle_GroupCurves)
-
+#########################################################################
 	def reload_all_libraries(self):
 		#โหลดข้อมูลจากไฟล์ JSON 
 		print("\n--- Reloading all libraries ---")
@@ -296,52 +305,135 @@ class JoinCurvesLibaryDialog(QtWidgets.QDialog):
 
 	def add_joint_item(self):
 		sels = cmds.ls(sl=True, type='joint')
-		if not sels: return cmds.warning("Please select a root joint!")
+		if not sels:
+			return cmds.warning("Select Root JOINT!!!!")
+
 		joint_to_add = sels[0]
 
-		# <<< จุดแก้ไขที่ 1: ทำความสะอาดชื่อ และใช้ Path ที่ถูกต้อง >>>
-		sanitized_name = joint_to_add.replace(':', '_').replace('|', '_')
+		short_name = joint_to_add.split('|')[-1]
+		sanitized_name = sanitize_name(short_name)
 		icon_path = os.path.join(JOINT_ICONS_DIRECTORY, f"{sanitized_name}.png")
 		uai.playblast_icon(joint_to_add, icon_path)
 
 		if not self.joint_listWidget.findItems(joint_to_add, QtCore.Qt.MatchExactly):
 			item = utj.create_joint_item(joint_to_add)
+
+			# 🟢ตั้งค่า icon จากไฟล์ที่ playblast มา
+			if os.path.exists(icon_path):
+				item.setIcon(QtGui.QIcon(icon_path))
+
 			self.joint_listWidget.addItem(item)
-			
+
 		utj.save_Library(self, JOINT_LIBRARY_PATH)
-		self.reload_all_libraries()
 
 	def del_joint_item(self):
-		utj.del_Joint_WidgetsItem(self)
-		utj.save_Library(self, JOINT_LIBRARY_PATH)
+	    selected_items = self.joint_listWidget.selectedItems()
+	    if not selected_items:
+	        return cmds.warning("Select JOINT to delete!!!!")
+
+	    import util_addicon as uai
+	    # โหลด JSON ปัจจุบัน
+	    joint_json = {}
+	    if os.path.exists(JOINT_LIBRARY_PATH):
+	        try:
+	            with open(JOINT_LIBRARY_PATH, 'r') as f:
+	                joint_json = json.load(f)
+	        except Exception as e:
+	            cmds.warning(f"ERROR read joint.json: {e}")
+
+	    removed_any = False
+
+	    for item in selected_items:
+	        name = item.text()
+
+	        self.joint_listWidget.takeItem(self.joint_listWidget.row(item))
+
+	        sanitized_short = name.split('|')[-1].replace(':', '_').replace('|', '_')
+	        icon_path = os.path.join(JOINT_ICONS_DIRECTORY, f"{sanitized_short}.png")
+	        uai.delete_icon_file(icon_path)
+
+	        sanitized_full = name.replace(':', '_').replace('|', '_')
+	        icon_path_full = os.path.join(JOINT_ICONS_DIRECTORY, f"{sanitized_full}.png")
+	        uai.delete_icon_file(icon_path_full)
+
+	        keys_to_remove = []
+	        for key in list(joint_json.keys()):
+	            key_short = key.split('|')[-1] if '|' in key else key
+	            if key == name or key_short == name.split('|')[-1] or key_short == sanitized_short:
+	                keys_to_remove.append(key)
+
+	        if keys_to_remove:
+	            removed_any = True
+	            for k in keys_to_remove:
+	                del joint_json[k]
+	                print(f"[INFO] Removed '{k}' from joint.json")
+
+	    if removed_any:
+	        try:
+	            with open(JOINT_LIBRARY_PATH, 'w') as f:
+	                json.dump(joint_json, f, indent=4)
+	            print(f"[INFO] Saved updated joint library : {JOINT_LIBRARY_PATH}")
+	        except Exception as e:
+	            cmds.warning(f"⚠️ Error updating joint.json: {e}")
+
+	    #อัปเดต data
+	    self.reload_all_libraries()
 
 	def create_preset_item(self):
 		utj.create_from_preset(self)
 
 	def add_curve_item(self):
 		selection = cmds.ls(sl=True)
-		if not selection: return cmds.warning("Please select a curve to add.")
+		if not selection:
+			return cmds.warning("Select CURVE to ADD!!!!")
 
 		for sel in selection:
 			shape = cmds.listRelatives(sel, s=True, type='nurbsCurve')
-			if shape:
-				sanitized_name = sel.replace(':', '_').replace('|', '_')
-				icon_path = os.path.join(CURVE_ICONS_DIRECTORY, f"{sanitized_name}.png")
-				uai.playblast_icon(sel, icon_path)
+			if not shape: continue
 
-				if not self.curves_listWidget.findItems(sel, QtCore.Qt.MatchExactly):
-					item = utc.create_curve_item(sel)
-					self.curves_listWidget.addItem(item)
+			short_name = sel.split('|')[-1]
+			sanitized_name = sanitize_name(short_name)
+			icon_path = os.path.join(CURVE_ICONS_DIRECTORY, f"{sanitized_name}.png")
 
+			playblast_icon(sel, icon_path)
+
+			if not self.curves_listWidget.findItems(sel, QtCore.Qt.MatchExactly):
+				item = utc.create_curve_item(sel)
+
+				# 🟢ตั้งค่า icon จากไฟล์ที่ playblast มา
+				if os.path.exists(icon_path):
+					item.setIcon(QtGui.QIcon(icon_path))
+
+				self.curves_listWidget.addItem(item)
 		utc.save_curve_library(self, CURVE_LIBRARY_PATH)
-		self.reload_all_libraries()
+		#self.reload_all_libraries()
 
 	def del_curve_item(self):
 		selected_items = self.curves_listWidget.selectedItems()
 		if not selected_items: return
+
 		for item in selected_items:
+			curve_name = item.text()
+
+			#สร้าง Path ไปไฟล์ Icon
+			sanitized_name = sanitize_name(curve_name)
+			icon_path = os.path.join(CURVE_ICONS_DIRECTORY, f"{sanitized_name}.png")
+
+			#เช็คและลบไฟล์ภาพ
+			try:
+				if os.path.exists(icon_path):
+					os.remove(icon_path)
+					print(f"🗑️ Deleted icon : {icon_path}")
+			except Exception as e:
+				cmds.warning(f"ERROR delete icon {icon_path}: {e}")
+
+			#ลบไอเท็มออกจาก UI
 			self.curves_listWidget.takeItem(self.curves_listWidget.row(item))
+
+		#save เปลี่ยนแปลงลงไฟล์ JSON
 		utc.save_curve_library(self, CURVE_LIBRARY_PATH)
+
+		#รีโหลด UI เพื่อให้แสดงผลถูก
 		self.reload_all_libraries()
 
 	def create_curve_item(self):
