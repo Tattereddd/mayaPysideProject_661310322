@@ -11,14 +11,13 @@ import os
 import importlib
 import maya.api.OpenMaya as om
 import glob
-import main
 
 
 SCRIPT_DIRECTORY = os.path.dirname(__file__)
 LIBRARY_DIRECTORY = os.path.join(SCRIPT_DIRECTORY, '..', 'LIBRARY')
 ICONS_DIRECTORY = os.path.join(LIBRARY_DIRECTORY, 'ICONS')
 
-CURVE_ICONS_DIRECTORY = os.path.join(main.SCRIPT_DIRECTORY, 'icons', 'icons_curves')
+CURVE_ICONS_DIRECTORY = os.path.join(os.path.dirname(__file__), '..', 'icons', 'icons_curves')
 
 def create_curve_item(name):
 	item = QtWidgets.QListWidgetItem(name)
@@ -80,11 +79,11 @@ def save_curve_library(ui_instance, library_path):
 	print(f"Curve library saved : {library_path}")
 
 def load_default_curve_library(ui_instance, library_path):
-	DEFAULT_ICONS_PATH = os.path.join(main.SCRIPT_DIRECTORY, 'iconsdefault', 'curves')
+	DEFAULT_ICONS_PATH = os.path.join(os.path.dirname(__file__), 'iconsdefault', 'curves')
 	print(f"🔍 Checking default curve icons : {DEFAULT_ICONS_PATH}")
 
 	library_data = {}
-	# ถ้ามีไฟล์ .json ก็โหลดก่อน
+	#ถ้ามีไฟล์ .json ก็โหลดก่อน
 	if os.path.exists(library_path):
 		try:
 			with open(library_path, 'r') as f:
@@ -112,16 +111,31 @@ def load_default_curve_library(ui_instance, library_path):
 
 
 def load_curve_library(ui_instance, library_path):
-	if not os.path.exists(library_path):
-		return {}
-	with open(library_path, 'r') as f:
-		library_data = json.load(f)
+    if not os.path.exists(library_path):
+        return {}
 
-	for curve_name in library_data.keys():
-		if not ui_instance.curves_listWidget.findItems(curve_name, QtCore.Qt.MatchExactly):
-			item = create_curve_item(curve_name)
-			ui_instance.curves_listWidget.addItem(item)
-	return library_data
+    with open(library_path, 'r') as f:
+        library_data = json.load(f)
+
+    for curve_name, info in library_data.items():
+        if not ui_instance.curves_listWidget.findItems(curve_name, QtCore.Qt.MatchExactly):
+            icon_path = info.get("icon_path", "")
+            item = create_curve_item(curve_name)
+
+            # ใช้ icon_path จาก JSON ถ้ามี
+            if icon_path and os.path.exists(icon_path):
+                item.setIcon(QtGui.QIcon(icon_path))
+            else:
+                # fallback ใช้ไฟล์ในโฟลเดอร์ icons_curves ถ้ามี
+                sanitized_name = curve_name.replace(':', '_').replace('|', '_')
+                fallback_path = os.path.join(CURVE_ICONS_DIRECTORY, f"{sanitized_name}.png")
+                if os.path.exists(fallback_path):
+                    item.setIcon(QtGui.QIcon(fallback_path))
+
+            ui_instance.curves_listWidget.addItem(item)
+
+    print(f"✅ Loaded {len(library_data)} curves with icons")
+    return library_data
 
 
 def create_curve_from_preset(ui_instance):
@@ -189,7 +203,7 @@ def create_curve_from_preset(ui_instance):
 
 			if should_group:
 				grp = cmds.group(empty=True, name=f"{curve}_{group_suffix}")
-				cmds.matchTransform(grp, curve) # ทำให้ group ตรงกับ curve ที่ปรับแล้ว
+				cmds.matchTransform(grp, curve)
 				cmds.parent(curve, grp)
 		print("--- All curves created successfully. ---")
 	

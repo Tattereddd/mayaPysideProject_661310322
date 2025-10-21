@@ -15,14 +15,12 @@ import json
 import sys
 import glob
 import importlib
-import util_joint as utj
-import util_curves as utc
-import util_addicon as uai
+from . import util_joint as utj
+from . import util_curves as utc
+from . import util_addicon as uai
 importlib.reload(utj)
 importlib.reload(utc)
 importlib.reload(uai)
-from util_addicon import playblast_icon, sanitize_name
-
 #########################################   LIBRARY   ###################################################
 
 SCRIPT_DIRECTORY = os.path.dirname(__file__)
@@ -85,7 +83,7 @@ class ColorSliderWidget(QtWidgets.QWidget):
 		self.color_show.clicked.connect(self.pickColor)
 
 		self.color_slider = QtWidgets.QSlider(QtCore.Qt.Horizontal)
-		self.color_slider.setRange(0, 255) 
+		self.color_slider.setRange(0, 255)
 		self.color_slider.setValue(255) # เริ่มที่สว่างสุด
 		self.color_slider.valueChanged.connect(self.updateColor)
 
@@ -289,95 +287,147 @@ class JoinCurvesLibaryDialog(QtWidgets.QDialog):
 		self.Checkbox_CreateCurvesCC.toggled.connect(self.toggle_GroupCurves)
 #########################################################################
 	def reload_all_libraries(self):
-		#โหลดข้อมูลจากไฟล์ JSON 
-		print("\n--- Reloading all libraries ---")
 		self.joint_listWidget.clear()
 		self.curves_listWidget.clear()
 
+		# โหลด JSON
 		default_data = utj.load_default_library(self, DEFAULT_JOINT_LIBRARY_PATH)
 		user_data = utj.load_library(self, JOINT_LIBRARY_PATH)
 		self.library_data = {**default_data, **user_data}
-		
+
 		default_curve_data = utc.load_default_curve_library(self, DEFAULT_CURVE_LIBRARY_PATH)
 		user_curve_data = utc.load_curve_library(self, CURVE_LIBRARY_PATH)
 		self.curve_library_data = {**default_curve_data, **user_curve_data}
-		print("--- Reload complete ---")
+
+		# ตั้ง icon Joint
+		for name, info in self.library_data.items():
+			if not self.joint_listWidget.findItems(name, QtCore.Qt.MatchExactly):
+				item = utj.create_joint_item(name, None)
+				icon_path = info.get("icon_path")
+				if icon_path and os.path.exists(icon_path):
+					item.setIcon(QtGui.QIcon(icon_path))
+				self.joint_listWidget.addItem(item)
+
+		# ตั้ง icon Curve
+		for name, info in self.curve_library_data.items():
+			if not self.curves_listWidget.findItems(name, QtCore.Qt.MatchExactly):
+				item = utc.create_curve_item(name)
+				icon_path = info.get("icon_path")
+				if icon_path and os.path.exists(icon_path):
+					item.setIcon(QtGui.QIcon(icon_path))
+				self.curves_listWidget.addItem(item)
 
 	def add_joint_item(self):
 		sels = cmds.ls(sl=True, type='joint')
 		if not sels:
 			return cmds.warning("Select Root JOINT!!!!")
 
-		joint_to_add = sels[0]
-
-		short_name = joint_to_add.split('|')[-1]
-		sanitized_name = sanitize_name(short_name)
+		root_joint = sels[0]
+		short_name = root_joint.split('|')[-1]
+		sanitized_name = uai.sanitize_name(short_name)
 		icon_path = os.path.join(JOINT_ICONS_DIRECTORY, f"{sanitized_name}.png")
-		uai.playblast_icon(joint_to_add, icon_path)
 
-		if not self.joint_listWidget.findItems(joint_to_add, QtCore.Qt.MatchExactly):
-			item = utj.create_joint_item(joint_to_add)
+		# สร้าง icon
+		uai.playblast_icon(root_joint, icon_path)
 
-			# 🟢ตั้งค่า icon จากไฟล์ที่ playblast มา
+		if not self.joint_listWidget.findItems(root_joint, QtCore.Qt.MatchExactly):
+			item = utj.create_joint_item(root_joint)
 			if os.path.exists(icon_path):
 				item.setIcon(QtGui.QIcon(icon_path))
-
 			self.joint_listWidget.addItem(item)
 
-		utj.save_Library(self, JOINT_LIBRARY_PATH)
+		# โหลด JSON เดิม
+		joint_json = {}
+		if os.path.exists(JOINT_LIBRARY_PATH):
+			with open(JOINT_LIBRARY_PATH, 'r') as f:
+				try:
+					joint_json = json.load(f)
+				except:
+					joint_json = {}
+
+		#ดึงข้อมูล hierarchy ของ joint ทั้งหมด
+		full_root_name = cmds.ls(root_joint, long=True)[0]
+		hierarchy = cmds.listRelatives(full_root_name, ad=True, type='joint', f=True) or []
+		hierarchy.append(full_root_name)
+		hierarchy.sort(key=len)
+
+		entry_data = {"joints": []}
+		for joint_full_path in hierarchy:
+			joint_short_name = joint_full_path.split('|')[-1]
+			parent_list = cmds.listRelatives(joint_full_path, p=True, f=True)
+			parent_short_name = parent_list[0].split('|')[-1] if parent_list else ""
+
+			joint_info = {
+				"name": joint_short_name,
+				"parent": parent_short_name,
+				"translation": cmds.xform(joint_full_path, q=True, ws=True, t=True),
+				"orientation": cmds.getAttr(f"{joint_full_path}.jointOrient")[0]
+			}
+			entry_data["joints"].append(joint_info)
+
+		entry_data["icon_path"] = icon_path if os.path.exists(icon_path) else ""
+		joint_json[root_joint] = entry_data
+
+		# เขียนกลับไฟล์
+		with open(JOINT_LIBRARY_PATH, 'w') as f:
+			json.dump(joint_json, f, indent=4)
+
+		print(f"[INFO] ✅ Added joint hierarchy '{root_joint}' with full data.")
+		self.reload_all_libraries()
+
 
 	def del_joint_item(self):
-	    selected_items = self.joint_listWidget.selectedItems()
-	    if not selected_items:
-	        return cmds.warning("Select JOINT to delete!!!!")
+		selected_items = self.joint_listWidget.selectedItems()
+		if not selected_items:
+			return cmds.warning("Select JOINT to delete!!!!")
 
-	    import util_addicon as uai
-	    # โหลด JSON ปัจจุบัน
-	    joint_json = {}
-	    if os.path.exists(JOINT_LIBRARY_PATH):
-	        try:
-	            with open(JOINT_LIBRARY_PATH, 'r') as f:
-	                joint_json = json.load(f)
-	        except Exception as e:
-	            cmds.warning(f"ERROR read joint.json: {e}")
+		import util_addicon as uai
+		# โหลด JSON ปัจจุบัน
+		joint_json = {}
+		if os.path.exists(JOINT_LIBRARY_PATH):
+			try:
+				with open(JOINT_LIBRARY_PATH, 'r') as f:
+					joint_json = json.load(f)
+			except Exception as e:
+				cmds.warning(f"ERROR read joint.json: {e}")
 
-	    removed_any = False
+		removed_any = False
 
-	    for item in selected_items:
-	        name = item.text()
+		for item in selected_items:
+			name = item.text()
 
-	        self.joint_listWidget.takeItem(self.joint_listWidget.row(item))
+			self.joint_listWidget.takeItem(self.joint_listWidget.row(item))
 
-	        sanitized_short = name.split('|')[-1].replace(':', '_').replace('|', '_')
-	        icon_path = os.path.join(JOINT_ICONS_DIRECTORY, f"{sanitized_short}.png")
-	        uai.delete_icon_file(icon_path)
+			sanitized_short = name.split('|')[-1].replace(':', '_').replace('|', '_')
+			icon_path = os.path.join(JOINT_ICONS_DIRECTORY, f"{sanitized_short}.png")
+			uai.delete_icon_file(icon_path)
 
-	        sanitized_full = name.replace(':', '_').replace('|', '_')
-	        icon_path_full = os.path.join(JOINT_ICONS_DIRECTORY, f"{sanitized_full}.png")
-	        uai.delete_icon_file(icon_path_full)
+			sanitized_full = name.replace(':', '_').replace('|', '_')
+			icon_path_full = os.path.join(JOINT_ICONS_DIRECTORY, f"{sanitized_full}.png")
+			uai.delete_icon_file(icon_path_full)
 
-	        keys_to_remove = []
-	        for key in list(joint_json.keys()):
-	            key_short = key.split('|')[-1] if '|' in key else key
-	            if key == name or key_short == name.split('|')[-1] or key_short == sanitized_short:
-	                keys_to_remove.append(key)
+			keys_to_remove = []
+			for key in list(joint_json.keys()):
+				key_short = key.split('|')[-1] if '|' in key else key
+				if key == name or key_short == name.split('|')[-1] or key_short == sanitized_short:
+					keys_to_remove.append(key)
 
-	        if keys_to_remove:
-	            removed_any = True
-	            for k in keys_to_remove:
-	                del joint_json[k]
-	                print(f"[INFO] Removed '{k}' from joint.json")
+			if keys_to_remove:
+				removed_any = True
+				for k in keys_to_remove:
+					del joint_json[k]
+					print(f"[INFO] Removed '{k}' from joint.json")
 
-	    if removed_any:
-	        try:
-	            with open(JOINT_LIBRARY_PATH, 'w') as f:
-	                json.dump(joint_json, f, indent=4)
-	            print(f"[INFO] Saved updated joint library : {JOINT_LIBRARY_PATH}")
-	        except Exception as e:
-	            cmds.warning(f"⚠️ Error updating joint.json: {e}")
+		if removed_any:
+			try:
+				with open(JOINT_LIBRARY_PATH, 'w') as f:
+					json.dump(joint_json, f, indent=4)
+				print(f"[INFO] Saved updated joint library : {JOINT_LIBRARY_PATH}")
+			except Exception as e:
+				cmds.warning(f"⚠️ Error updating joint.json: {e}")
 
-	    #อัปเดต data
-	    self.reload_all_libraries()
+		#อัปเดต data
+		self.reload_all_libraries()
 
 	def create_preset_item(self):
 		utj.create_from_preset(self)
@@ -387,53 +437,109 @@ class JoinCurvesLibaryDialog(QtWidgets.QDialog):
 		if not selection:
 			return cmds.warning("Select CURVE to ADD!!!!")
 
+		# โหลด JSON เดิมก่อน
+		curve_json = {}
+		if os.path.exists(CURVE_LIBRARY_PATH):
+			with open(CURVE_LIBRARY_PATH, 'r') as f:
+				try:
+					curve_json = json.load(f)
+				except:
+					curve_json = {}
+
 		for sel in selection:
-			shape = cmds.listRelatives(sel, s=True, type='nurbsCurve')
-			if not shape: continue
+			# ตรวจว่ามี shape เป็น curve มั้ย
+			shapes = cmds.listRelatives(sel, s=True, type='nurbsCurve', fullPath=True)
+			if not shapes:
+				cmds.warning(f"{sel} is not a NURBS curve.")
+				continue
 
+			shape = shapes[0]
+
+			# ดึงข้อมูล geometry ของ curve
+			import maya.api.OpenMaya as om
+			sel_list = om.MSelectionList()
+			sel_list.add(shape)
+			dag_path = sel_list.getDagPath(0)
+			curve_fn = om.MFnNurbsCurve(dag_path)
+
+			cvs = []
+			for i in range(curve_fn.numCVs):
+				pt = curve_fn.cvPosition(i, om.MSpace.kWorld)
+				cvs.append([pt.x, pt.y, pt.z])
+			knots = list(curve_fn.knots())
+			degree = curve_fn.degree
+			form = curve_fn.form
+
+			# สร้าง icon
 			short_name = sel.split('|')[-1]
-			sanitized_name = sanitize_name(short_name)
+			sanitized_name = uai.sanitize_name(short_name)
 			icon_path = os.path.join(CURVE_ICONS_DIRECTORY, f"{sanitized_name}.png")
-
-			playblast_icon(sel, icon_path)
+			uai.playblast_icon(sel, icon_path)
 
 			if not self.curves_listWidget.findItems(sel, QtCore.Qt.MatchExactly):
 				item = utc.create_curve_item(sel)
-
-				# 🟢ตั้งค่า icon จากไฟล์ที่ playblast มา
 				if os.path.exists(icon_path):
 					item.setIcon(QtGui.QIcon(icon_path))
-
 				self.curves_listWidget.addItem(item)
-		utc.save_curve_library(self, CURVE_LIBRARY_PATH)
-		#self.reload_all_libraries()
+
+			#บันทึกข้อมูลทั้งหมดลง JSON
+			curve_json[sel] = {
+				"icon_path": icon_path,
+				"degree": degree,
+				"form": form,
+				"knots": knots,
+				"cvs": cvs
+			}
+
+		# เขียนกลับไฟล์ JSON
+		with open(CURVE_LIBRARY_PATH, 'w') as f:
+			json.dump(curve_json, f, indent=4)
+
+		print(f"[INFO] ✅ Added curve(s) to library with full geometry info.")
+		self.reload_all_libraries()
 
 	def del_curve_item(self):
 		selected_items = self.curves_listWidget.selectedItems()
-		if not selected_items: return
+		if not selected_items:
+			return cmds.warning("Select CURVE to delete!!!!")
+
+		# โหลด JSON ปัจจุบัน
+		curve_json = {}
+		if os.path.exists(CURVE_LIBRARY_PATH):
+			with open(CURVE_LIBRARY_PATH, 'r') as f:
+				try:
+					curve_json = json.load(f)
+				except:
+					curve_json = {}
 
 		for item in selected_items:
 			curve_name = item.text()
 
-			#สร้าง Path ไปไฟล์ Icon
-			sanitized_name = sanitize_name(curve_name)
+			# ลบไฟล์ icon
+			sanitized_name = uai.sanitize_name(curve_name)
 			icon_path = os.path.join(CURVE_ICONS_DIRECTORY, f"{sanitized_name}.png")
-
-			#เช็คและลบไฟล์ภาพ
-			try:
-				if os.path.exists(icon_path):
+			if os.path.exists(icon_path):
+				try:
 					os.remove(icon_path)
-					print(f"🗑️ Deleted icon : {icon_path}")
-			except Exception as e:
-				cmds.warning(f"ERROR delete icon {icon_path}: {e}")
+					print(f"🗑️ Deleted curve icon: {icon_path}")
+				except Exception as e:
+					cmds.warning(f"⚠️ Error deleting icon: {e}")
 
-			#ลบไอเท็มออกจาก UI
+			# ลบออกจาก JSON
+			if curve_name in curve_json:
+				del curve_json[curve_name]
+				print(f"[INFO] Removed '{curve_name}' from curves.json")
+
+			# ลบออกจาก UI
 			self.curves_listWidget.takeItem(self.curves_listWidget.row(item))
 
-		#save เปลี่ยนแปลงลงไฟล์ JSON
-		utc.save_curve_library(self, CURVE_LIBRARY_PATH)
+		# เขียน JSON ใหม่
+		with open(CURVE_LIBRARY_PATH, 'w') as f:
+			json.dump(curve_json, f, indent=4)
 
-		#รีโหลด UI เพื่อให้แสดงผลถูก
+		print(f"[INFO] ✅ Updated curve library : {CURVE_LIBRARY_PATH}")
+
+		# Reload เพื่ออัปเดต UI
 		self.reload_all_libraries()
 
 	def create_curve_item(self):

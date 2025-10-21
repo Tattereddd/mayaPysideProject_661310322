@@ -76,17 +76,17 @@ def playblast_icon(object_name, output_path, width=128, height=128):
 		cmds.warning(f"⚠️ Playblast ERROR: {e}")
 
 def delete_icon_file(icon_path):
-    import glob
-    base_no_ext = os.path.splitext(icon_path)[0]
-    pattern = f"{base_no_ext}*.png"
-    found = glob.glob(pattern)
-    deleted_any = False
-    for p in found:
-        try:
-            os.remove(p)
-            deleted_any = True
-            print(f"[INFO] Deleted icon: {p}")
-        except Exception as e:
-            print(f"[Warning] ERROR not delete {p}: {e}")
-    if not deleted_any:
-        print(f"[Info] ERROR No icons found : {pattern}")
+	import glob
+	base_no_ext = os.path.splitext(icon_path)[0]
+	pattern = f"{base_no_ext}*.png"
+	found = glob.glob(pattern)
+	deleted_any = False
+	for p in found:
+		try:
+			os.remove(p)
+			deleted_any = True
+			print(f"[INFO] Deleted icon: {p}")
+		except Exception as e:
+			print(f"[Warning] ERROR not delete {p}: {e}")
+	if not deleted_any:
+		print(f"[Info] ERROR No icons found : {pattern}")

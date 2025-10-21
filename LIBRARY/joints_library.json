@@ -1,1 +1,91 @@
-{}
+{
+    "test_add": {
+        "joints": [
+            {
+                "name": "test_add",
+                "parent": "",
+                "translation": [
+                    -7.020125999414269,
+                    0.0,
+                    0.05121142088393249
+                ],
+                "orientation": [
+                    0.0,
+                    69.68480437326792,
+                    0.0
+                ]
+            },
+            {
+                "name": "joint2",
+                "parent": "test_add",
+                "translation": [
+                    0.1652350652894672,
+                    0.0,
+                    -19.357522489522708
+                ],
+                "orientation": [
+                    0.0,
+                    219.55092276898924,
+                    0.0
+                ]
+            },
+            {
+                "name": "joint3",
+                "parent": "joint2",
+                "translation": [
+                    6.937644344665399,
+                    0.0,
+                    0.051211420883930714
+                ],
+                "orientation": [
+                    0.0,
+                    215.99686743603928,
+                    0.0
+                ]
+            },
+            {
+                "name": "joint4",
+                "parent": "joint3",
+                "translation": [
+                    -10.075969210839995,
+                    0.0,
+                    -11.759209639491173
+                ],
+                "orientation": [
+                    0.0,
+                    215.29064000388775,
+                    0.0
+                ]
+            },
+            {
+                "name": "joint5",
+                "parent": "joint4",
+                "translation": [
+                    8.011318986517685,
+                    0.0,
+                    -11.92439035362229
+                ],
+                "orientation": [
+                    0.0,
+                    218.74893009621044,
+                    0.0
+                ]
+            },
+            {
+                "name": "joint6",
+                "parent": "joint5",
+                "translation": [
+                    -6.937535642348708,
+                    0.0,
+                    0.29898249208061856
+                ],
+                "orientation": [
+                    0.0,
+                    140.72783532160543,
+                    0.0
+                ]
+            }
+        ],
+        "icon_path": "C:\\Users/Tran/Documents/maya/2024/scripts\\mayaPysideProject_661310322\\icons\\icons_joint\\test_add.png"
+    }
+}

@@ -10,16 +10,15 @@ import json
 import os
 import importlib
 import glob
-import main
 
 
 SCRIPT_DIRECTORY = os.path.dirname(__file__)
 LIBRARY_DIRECTORY = os.path.join(SCRIPT_DIRECTORY, '..', 'LIBRARY')
 ICONS_DIRECTORY = os.path.join(LIBRARY_DIRECTORY, 'ICONS')
 
-JOINT_ICONS_DIRECTORY = os.path.join(main.SCRIPT_DIRECTORY, 'icons', 'icons_joint')
+JOINT_ICONS_DIRECTORY = os.path.join(os.path.dirname(__file__), '..', 'icons', 'icons_joint')
 
-def create_joint_item(name):
+def create_joint_item(name, icon_path=None):
 	item = QtWidgets.QListWidgetItem(name)
 
 	# สร้างชื่อสองแบบยาวดับสั้นกันชื่อผิด แทนอักขระพิเศษด้วย _ 
@@ -30,7 +29,10 @@ def create_joint_item(name):
 	custom_icon_path_full = os.path.join(JOINT_ICONS_DIRECTORY, f"{sanitized_full}.png")
 	custom_icon_path_short = os.path.join(JOINT_ICONS_DIRECTORY, f"{sanitized_short}.png")
 
-	if os.path.exists(custom_icon_path_full):
+	# ใช้ icon_path ถ้ามี
+	if icon_path and os.path.exists(icon_path):
+		item.setIcon(QtGui.QIcon(icon_path))
+	elif os.path.exists(custom_icon_path_full):
 		item.setIcon(QtGui.QIcon(custom_icon_path_full))
 	elif os.path.exists(custom_icon_path_short):
 		item.setIcon(QtGui.QIcon(custom_icon_path_short))
@@ -107,64 +109,67 @@ def save_Library(ui_instance, library_path):
 			}
 			entry_data["joints"].append(joint_info)
 		
+		#เก็บ path icon ลง json ด้วย
+		sanitized_name = root_name.replace(':', '_').replace('|', '_')
+		icon_path = os.path.join(ui_instance.JOINT_ICONS_DIRECTORY, f"{sanitized_name}.png")
+		entry_data["icon_path"] = icon_path if os.path.exists(icon_path) else ""
+
 		library_data[root_name] = entry_data
 
-	keys_to_delete = [key for key in ui_instance.library_data if key not in ui_instance.default_presetsJJ]
-	for key in keys_to_delete:
-		del ui_instance.library_data[key]
-	ui_instance.library_data.update(library_data)
+	with open(library_path, 'w') as f:
+		json.dump(library_data, f, indent=4)
+	print(f"✅ Joint library saved to {library_path}")
 
-	try:
-		with open(library_path, 'w') as f:
-			json.dump(library_data, f, indent=4)
-		print(f"saved to: {library_path}")
-	except Exception as e:
-		cmds.warning(f"not save: {e}")
 
 def load_default_library(ui_instance, library_path):
-    DEFAULT_ICONS_PATH = os.path.join(main.SCRIPT_DIRECTORY, 'iconsdefault', 'joint')
-    print(f"🔍 Checking default icons in: {DEFAULT_ICONS_PATH}")
+	DEFAULT_ICONS_PATH = os.path.join(os.path.dirname(__file__), 'iconsdefault', 'joint')
+	print(f"🔍 Checking default icons in: {DEFAULT_ICONS_PATH}")
 
-    library_data = {}
-    # ถ้ามีไฟล์ .json ก็โหลดก่อน
-    if os.path.exists(library_path):
-        try:
-            with open(library_path, 'r') as f:
-                library_data = json.load(f)
-        except Exception as e:
-            cmds.warning(f"Error loading default joint library .json: {e}")
+	library_data = {}
+	# ถ้ามีไฟล์ .json ก็โหลดก่อน
+	if os.path.exists(library_path):
+		try:
+			with open(library_path, 'r') as f:
+				library_data = json.load(f)
+		except Exception as e:
+			cmds.warning(f"Error loading default joint library .json: {e}")
 
-    #เพิ่ม presets พร้อม icons
-    for preset_name in ui_instance.default_presetsJJ:
-        if not ui_instance.joint_listWidget.findItems(preset_name, QtCore.Qt.MatchExactly):
-            item = QtWidgets.QListWidgetItem(preset_name)
+	#เพิ่ม presets พร้อม icons
+	for preset_name in ui_instance.default_presetsJJ:
+		if not ui_instance.joint_listWidget.findItems(preset_name, QtCore.Qt.MatchExactly):
+			item = QtWidgets.QListWidgetItem(preset_name)
 
-            preset_icon = os.path.join(DEFAULT_ICONS_PATH, f"{preset_name}.png")
-            if os.path.exists(preset_icon):
-                print(f"✅ Found icon for preset '{preset_name}': {preset_icon}")
-                item.setIcon(QtGui.QIcon(preset_icon))
-            else:
-                print(f"⚠️ Icon not found preset '{preset_name}'")
+			preset_icon = os.path.join(DEFAULT_ICONS_PATH, f"{preset_name}.png")
+			if os.path.exists(preset_icon):
+				print(f"✅ Found icon for preset '{preset_name}': {preset_icon}")
+				item.setIcon(QtGui.QIcon(preset_icon))
+			else:
+				print(f"⚠️ Icon not found preset '{preset_name}'")
 
-            ui_instance.joint_listWidget.addItem(item)
+			ui_instance.joint_listWidget.addItem(item)
 
-    print(f"Loaded {len(library_data)} default joints.")
-    return library_data
+	print(f"Loaded {len(library_data)} default joints.")
+	return library_data
 
 def load_library(ui_instance, library_path):
 	if not os.path.exists(library_path):
 		return {}
+
 	try:
 		with open(library_path, 'r') as f:
 			library_data = json.load(f)
-		for root_name in library_data.keys():
+
+		for root_name, info in library_data.items():
 			if not ui_instance.joint_listWidget.findItems(root_name, QtCore.Qt.MatchExactly):
-				item = create_joint_item(root_name)
+				icon_path = info.get("icon_path", "")
+				item = create_joint_item(root_name, icon_path)
 				ui_instance.joint_listWidget.addItem(item)
-		print(f"Loaded {len(library_data)} joint")
+
+		print(f"✅ Loaded {len(library_data)} joints with icons")
 		return library_data
+
 	except Exception as e:
-		cmds.warning(f"Error: {e}")
+		cmds.warning(f"Error loading joint library: {e}")
 		return {}
 
 def create_from_preset(ui_instance):
@@ -240,7 +245,7 @@ def create_curve_on_joint(ui_instance, joint_name):
 
 	#Color
 	try:
-		color = ui_instance.colorSliderJJ.base_color
+		color = ui_instance.colorSliderJJ.final_color
 		shapes = cmds.listRelatives(curve, s=True, type="nurbsCurve")
 		if shapes:
 			shape = shapes[0]
