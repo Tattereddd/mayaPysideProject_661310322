@@ -246,3 +246,4 @@ def del_curve_item(ui_instance):
 					print(f"[INFO] 🟢Removed '{curve_name}' from curve.json")
 			except Exception as e:
 				cmds.warning(f"⚠️Error updating curve.json: {e}")
+#

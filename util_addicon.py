@@ -90,3 +90,5 @@ def delete_icon_file(icon_path):
 			print(f"[Warning] ERROR not delete {p}: {e}")
 	if not deleted_any:
 		print(f"[Info] ERROR No icons found : {pattern}")
+
+#

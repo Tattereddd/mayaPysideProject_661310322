@@ -561,3 +561,5 @@ def run():
 	ptr = wrapInstance(int(omui.MQtUtil.mainWindow()),QtWidgets.QWidget)
 	ui = JoinCurvesLibaryDialog(parent=ptr)
 	ui.show()
+
+#
